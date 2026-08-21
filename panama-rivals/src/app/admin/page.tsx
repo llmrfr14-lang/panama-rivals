@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
-const ADMIN_CODE = process.env.NEXT_PUBLIC_ADMIN_CODE ?? "rivals-admin";
+const ADMIN_CODE = process.env.NEXT_PUBLIC_ADMIN_CODE ?? "fieles-2026-campeon";
 
 export default function AdminPage() {
   const { t } = useI18n();
