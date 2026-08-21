@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
+
+const ADMIN_CODE = process.env.NEXT_PUBLIC_ADMIN_CODE ?? "rivals-admin";
 
 export default function AdminPage() {
   const { t } = useI18n();
@@ -20,6 +23,44 @@ export default function AdminPage() {
   const pending = submissions.filter((s) => s.status === "pending");
   const processed = submissions.filter((s) => s.status !== "pending");
   const groupMatches = matches.filter((m) => m.stage === "group");
+    const [code, setCode] = useState("");
+  const [unlocked, setUnlocked] = useState(false);
+  const [wrong, setWrong] = useState(false);
+
+  if (!unlocked) {
+    return (
+      <div className="mx-auto max-w-sm px-4 py-24 text-center">
+        <p className="emoji text-4xl">🔒</p>
+        <h1 className="mt-4 font-display text-2xl font-black text-rivals-gold">Solo admin</h1>
+        <p className="mt-2 text-sm text-slate-400">Ingresa el código de admin para continuar.</p>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (code.trim() === ADMIN_CODE) {
+              setUnlocked(true);
+              setWrong(false);
+            } else {
+              setWrong(true);
+            }
+          }}
+          className="mt-6 flex gap-2"
+        >
+          <input
+            type="password"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="Código de admin"
+            className="w-full rounded border border-rivals-border bg-rivals-surface px-3 py-2 outline-none focus:border-rivals-blue"
+            autoFocus
+          />
+          <button type="submit" className="rounded bg-rivals-red px-4 py-2 font-bold text-white hover:brightness-110">
+            Entrar
+          </button>
+        </form>
+        {wrong && <p className="mt-3 text-sm text-red-400">Código incorrecto.</p>}
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-16">
