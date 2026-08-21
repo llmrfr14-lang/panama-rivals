@@ -36,7 +36,7 @@ export default function Home() {
           <Link href="/register" className="rounded bg-rivals-red px-6 py-3 font-bold text-white shadow-lg shadow-rivals-red/30 transition hover:brightness-110">
             {t("hero.cta")}
           </Link>
-          <a href="https://discord.com/invite/yourinvite" className="rounded border border-rivals-border px-6 py-3 font-bold transition hover:border-rivals-gold hover:text-rivals-gold">
+          <a href="https://discord.gg/h66gaD8rA" className="rounded border border-rivals-border px-6 py-3 font-bold transition hover:border-rivals-gold hover:text-rivals-gold">
             {t("hero.discord")}
           </a>
         </div>
