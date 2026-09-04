@@ -31,14 +31,14 @@ export default function RegisterPage() {
           : "El capitán registra el equipo por torneo — nombre y plantilla de 3. Cuando el torneo inicia, el registro cierra."}
       </p>
 
-      <form onSubmit={submit} className="mt-10 space-y-5 rounded-xl border border-rivals-border bg-rivals-surface p-6">
+      <form onSubmit={submit} className="mt-10 space-y-5 glass-card rounded-3xl p-6">
         <label className="block">
           <span className="text-sm text-slate-400">{en ? "Team name" : "Nombre del equipo"}</span>
           <input
             required
             value={state.team}
             onChange={(e) => setState((s) => ({ ...s, team: e.target.value }))}
-            className="mt-1 w-full rounded border border-rivals-border bg-rivals-bg px-3 py-2 outline-none focus:border-rivals-blue"
+            className="mt-1 w-full soft-ring rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 backdrop-blur-md transition focus:border-white/20"
             placeholder={en ? "E.g.: The Canaleros" : "Ej: Los Canaleros"}
           />
         </label>
@@ -51,7 +51,7 @@ export default function RegisterPage() {
             required
             value={state.captain}
             onChange={(e) => setState((s) => ({ ...s, captain: e.target.value }))}
-            className="mt-1 w-full rounded border border-rivals-border bg-rivals-bg px-3 py-2 outline-none focus:border-rivals-blue"
+            className="mt-1 w-full soft-ring rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 backdrop-blur-md transition focus:border-white/20"
             placeholder={en ? "E.g.: @Tito / Tito#1234" : "Ej: @Tito / Tito#1234"}
           />
         </label>
@@ -65,7 +65,7 @@ export default function RegisterPage() {
               required
               value={p}
               onChange={(e) => setPlayer(i, e.target.value)}
-              className="mt-1 w-full rounded border border-rivals-border bg-rivals-bg px-3 py-2 outline-none focus:border-rivals-blue"
+              className="mt-1 w-full soft-ring rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 backdrop-blur-md transition focus:border-white/20"
             />
           </label>
         ))}
@@ -73,7 +73,7 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={done}
-          className="w-full rounded bg-rivals-red py-3 font-bold text-white transition disabled:opacity-50 hover:enabled:brightness-110"
+          className="w-full soft-ring rounded-full bg-rivals-red py-3 font-bold text-white shadow-[0_8px_24px_rgba(230,57,70,0.35)] transition disabled:opacity-50 hover:enabled:brightness-110"
         >
           {done
             ? en

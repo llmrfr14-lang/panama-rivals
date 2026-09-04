@@ -76,11 +76,11 @@ export default function ReportPage() {
             value={tokenInput}
             onChange={(e) => setTokenInput(e.target.value)}
             placeholder="Código de reporte"
-            className="w-full rounded border border-rivals-border bg-rivals-surface px-3 py-2 text-center font-mono uppercase tracking-widest outline-none focus:border-rivals-blue"
+            className="w-full soft-ring rounded-xl border border-white/10 bg-white/5 backdrop-blur-md px-3 py-2 text-center font-mono uppercase tracking-widest outline-none focus:border-rivals-blue"
           />
           <button
             type="submit"
-            className="rounded bg-rivals-red px-4 py-2 font-bold text-white hover:brightness-110"
+            className="soft-ring rounded-full bg-rivals-red px-5 py-2 font-bold text-white shadow-[0_4px_16px_rgba(230,57,70,0.35)] transition hover:brightness-110"
           >
             Entrar
           </button>
@@ -128,13 +128,13 @@ export default function ReportPage() {
         {home?.name} vs {away?.name} — el resultado va a la admin para aprobación antes de contar en standings.
       </p>
 
-      <form onSubmit={submit} className="mt-8 space-y-6 rounded-xl border border-rivals-border bg-rivals-surface p-6">
+      <form onSubmit={submit} className="mt-8 space-y-6 glass-card rounded-3xl p-6">
         <label className="block">
           <span className="text-sm text-slate-400">Marcador (series ganadas) — ej. 2:1</span>
           <input
             value={score}
             onChange={(e) => setScore(e.target.value)}
-            className="mt-1 w-full rounded border border-rivals-border bg-rivals-bg px-3 py-2 font-mono outline-none focus:border-rivals-blue"
+            className="mt-1 w-full soft-ring rounded-xl border border-white/10 bg-white/5 px-3 py-2 font-mono backdrop-blur-md transition"
           />
         </label>
 
@@ -161,7 +161,7 @@ export default function ReportPage() {
                                 min={0}
                                 value={line[f]}
                                 onChange={(e) => setLine(p.id, teamId, f, Number(e.target.value) || 0)}
-                                className="mt-1 w-full rounded border border-rivals-border bg-rivals-bg px-1 py-1 text-center"
+                                className="mt-1 w-full soft-ring rounded-lg border border-white/10 bg-white/5 px-1 py-1 text-center backdrop-blur-md transition"
                               />
                             </label>
                           ))}

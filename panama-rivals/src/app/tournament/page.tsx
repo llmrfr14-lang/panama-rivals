@@ -35,7 +35,7 @@ function GroupTable({ g }: { g: string }) {
   const groupMatches = matches.filter((m) => m.stage === "group" && m.groupId === g);
 
   return (
-    <div className="rounded-xl border border-rivals-border bg-rivals-surface p-5">
+    <div className="glass-card rounded-3xl p-5">
       <h2 className="font-display text-lg font-bold text-rivals-gold">Group {g}</h2>
       {groupMatches.length > 0 && (
         <div className="mt-3 space-y-2 border-b border-rivals-border pb-4">
@@ -57,7 +57,7 @@ function GroupTable({ g }: { g: string }) {
               ) : (
                 <Link
                   href={`/report/${encodeURIComponent(m.id)}`}
-                  className="shrink-0 rounded bg-rivals-red px-2 py-1 font-bold text-white hover:brightness-110"
+                  className="shrink-0 soft-ring rounded-full bg-rivals-red px-3 py-1 font-bold text-white shadow-[0_4px_12px_rgba(230,57,70,0.3)] transition hover:brightness-110"
                 >
                   Reportar
                 </Link>
@@ -104,7 +104,7 @@ function BracketFrame({ seeds, meta, labels }: { seeds?: { home: string; away: s
   return (
     <div className="mt-8 grid gap-6 md:grid-cols-3">
       {meta.map((title, col) => (
-        <div key={title} className="rounded-xl border border-rivals-border bg-rivals-surface p-5">
+        <div key={title} className="glass-card rounded-3xl p-5">
           <h3 className="font-display text-md font-bold text-rivals-red">{title}</h3>
           <div className="mt-4 space-y-4">
             {labels[col].map((label, i) => {

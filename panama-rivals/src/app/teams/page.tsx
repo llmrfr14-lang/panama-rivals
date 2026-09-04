@@ -17,7 +17,7 @@ export default function TeamsPage() {
     <div className="mx-auto max-w-6xl px-4 py-16">
       <h1 className="font-display text-4xl font-black">{lang === "en" ? "Teams" : "Equipos"}</h1>
       {total === 0 ? (
-        <div className="mt-16 mx-auto max-w-md rounded-xl border border-dashed border-rivals-border bg-rivals-surface p-10 text-center">
+        <div className="mt-16 mx-auto max-w-md glass-card glass-dashed rounded-3xl p-10 text-center">
           <span className="emoji text-4xl">🛡️</span>
           <p className="mt-4 font-display text-xl font-bold text-rivals-gold">
             {lang === "en" ? "Season 2" : "Temporada 2"}
@@ -41,7 +41,7 @@ export default function TeamsPage() {
             </h2>
             <div className="mt-4 space-y-4">
               {teams.map((team) => (
-                <div key={team.id} className="rounded-xl border border-rivals-border bg-rivals-surface p-4">
+                <div key={team.id} className="glass-card rounded-3xl p-4">
                   <div className="flex items-center justify-between">
                     <p className="font-semibold">{team.name}</p>
                     <span className="text-xs uppercase tracking-widest text-slate-500">

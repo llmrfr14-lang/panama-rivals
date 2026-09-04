@@ -50,10 +50,10 @@ export default function AdminPage() {
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="Código de admin"
-            className="w-full rounded border border-rivals-border bg-rivals-surface px-3 py-2 outline-none focus:border-rivals-blue"
+            className="w-full soft-ring rounded-xl border border-white/10 bg-white/5 backdrop-blur-md px-3 py-2 outline-none focus:border-rivals-blue"
             autoFocus
           />
-          <button type="submit" className="rounded bg-rivals-red px-4 py-2 font-bold text-white hover:brightness-110">
+          <button type="submit" className="soft-ring rounded-full bg-rivals-red px-5 py-2 font-bold text-white shadow-[0_4px_16px_rgba(230,57,70,0.35)] transition hover:brightness-110">
             Entrar
           </button>
         </form>
@@ -72,7 +72,7 @@ export default function AdminPage() {
       <h2 className="mt-10 font-display text-2xl font-bold text-rivals-gold">Registros Temporada 2</h2>
       <div className="mt-4 space-y-3">
         {registrations.map((r) => (
-          <div key={r.id} className="rounded-xl border border-rivals-border bg-rivals-surface p-4">
+          <div key={r.id} className="glass-card rounded-3xl p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="font-semibold">{r.teamName}</p>
@@ -83,7 +83,7 @@ export default function AdminPage() {
               <select
                 value={r.groupId ?? ""}
                 onChange={(e) => assignGroup(r.id, e.target.value || null)}
-                className="rounded border border-rivals-border bg-rivals-bg px-2 py-1 text-sm outline-none focus:border-rivals-blue"
+                className="soft-ring rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-sm backdrop-blur-md transition focus:border-white/20"
               >
                 <option value="">Sin grupo</option>
                 {["A", "B", "C", "D"].map((g) => (
@@ -103,7 +103,7 @@ export default function AdminPage() {
       {registrations.some((r) => r.groupId) && (
         <button
           onClick={generateSchedule}
-          className="mt-4 w-full rounded bg-rivals-red py-3 font-bold text-white transition hover:brightness-110"
+          className="mt-4 w-full soft-ring rounded-full bg-rivals-red py-3 font-bold text-white shadow-[0_8px_24px_rgba(230,57,70,0.35)] transition hover:brightness-110"
         >
           Generar calendario de grupos (round robin)
         </button>
@@ -141,7 +141,7 @@ export default function AdminPage() {
           const home = teamById(m?.homeTeamId ?? null)?.name ?? m?.homeTeamId;
           const away = teamById(m?.awayTeamId ?? null)?.name ?? m?.awayTeamId;
           return (
-            <div key={s.id} className="rounded-xl border border-rivals-border bg-rivals-surface p-4">
+            <div key={s.id} className="glass-card rounded-3xl p-4">
               <div className="flex items-center justify-between">
                 <p className="font-semibold">
                   {home} {s.homeScore} — {away} {s.awayScore}
@@ -177,7 +177,7 @@ export default function AdminPage() {
               <div className="mt-3 flex gap-2">
                 <button
                   onClick={() => approve(s.id)}
-                  className="rounded bg-rivals-red px-4 py-2 text-sm font-bold text-white hover:brightness-110"
+                  className="soft-ring rounded-full bg-rivals-red px-4 py-2 text-sm font-bold text-white shadow-[0_4px_12px_rgba(230,57,70,0.3)] transition hover:brightness-110"
                 >
                   {t("admin.approve")}
                 </button>

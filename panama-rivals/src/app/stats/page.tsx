@@ -32,7 +32,7 @@ export default function StatsPage() {
       </div>
 
       {rows.length === 0 && (
-        <div className="mt-8 mx-auto max-w-md rounded-xl border border-dashed border-rivals-border bg-rivals-surface p-10 text-center">
+        <div className="mt-8 mx-auto max-w-md glass-card glass-dashed rounded-3xl p-10 text-center">
           <span className="emoji text-4xl">📈</span>
           <p className="mt-4 font-display text-xl font-bold text-rivals-gold">Sin stats aún</p>
           <p className="mt-2 text-sm text-slate-400">
@@ -46,7 +46,7 @@ export default function StatsPage() {
       {rows.length > 0 && (
       <div className="mt-8 overflow-x-auto rounded-xl border border-rivals-border">
         <table className="w-full text-sm">
-          <thead className="bg-rivals-surface text-slate-400">
+          <thead className="bg-white/2 text-slate-400">
             <tr>
               <th className="px-4 py-3 text-left">#</th>
               <th className="px-4 py-3 text-left">Player</th>

@@ -30,7 +30,7 @@ export default function SeasonOnePage() {
       <h2 className="mt-16 font-display text-2xl font-black tracking-tight text-rivals-gold">{t("s1.groups")}</h2>
       <div className="mt-6 grid gap-8 md:grid-cols-2">
         {seasonOne.groups.map((g) => (
-          <div key={g.name} className="rounded-xl border border-rivals-border bg-rivals-surface p-5">
+          <div key={g.name} className="glass-card rounded-3xl p-5">
             <h3 className="font-display text-lg font-black text-rivals-gold">{g.name}</h3>
             <table className="mt-2 w-full text-sm">
               <thead>
@@ -67,7 +67,7 @@ export default function SeasonOnePage() {
           [t("s1.sf"), sf],
           [t("s1.final"), fin],
         ] as [string, typeof qf][]).map(([label, matches]) => (
-          <div key={label} className="rounded-xl border border-rivals-border bg-rivals-surface p-5">
+          <div key={label} className="glass-card rounded-3xl p-5">
             <h3 className="font-display text-base font-black text-rivals-red">{label}</h3>
             <div className="mt-4 space-y-3">
               {matches.map((m) => (
@@ -90,7 +90,7 @@ export default function SeasonOnePage() {
       <h2 className="mt-16 font-display text-2xl font-black tracking-tight text-rivals-gold">{t("s1.leaders")}</h2>
       <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {leaderCats.map((cat) => (
-          <div key={cat} className="rounded-xl border border-rivals-border bg-rivals-surface p-4">
+          <div key={cat} className="glass-card rounded-3xl p-4">
             <h3 className="font-display text-sm font-black uppercase tracking-wider text-rivals-blue">
               {t(cat === "points" ? "s1.pointsLabel" : `s1.${cat}`)}
             </h3>

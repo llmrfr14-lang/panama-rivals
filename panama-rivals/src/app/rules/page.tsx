@@ -93,7 +93,7 @@ export default function RulesPage() {
       </h1>
       <div className="mt-10 space-y-6">
         {rules.map((r) => (
-          <section key={r.title.en} className="rounded-xl border border-rivals-border bg-rivals-surface p-6">
+          <section key={r.title.en} className="glass-card rounded-3xl p-6">
             <h2 className="font-display text-xl font-bold text-rivals-gold">{r.title[lang]}</h2>
             <ul className="mt-3 list-disc space-y-2 pl-6 text-slate-300">
               {r.body.map((b) => (

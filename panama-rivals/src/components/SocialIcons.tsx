@@ -48,7 +48,7 @@ export function SocialIcons({ size = "md" }: { size?: "md" | "lg" }) {
           rel="noopener noreferrer"
           aria-label={s.name}
           title={s.name}
-          className={`flex items-center justify-center rounded-full border border-rivals-border bg-rivals-surface transition hover:-translate-y-0.5 ${btn}`}
+          className={`flex items-center justify-center rounded-full border border-white/10 bg-white/5 backdrop-blur-md transition duration-200 hover:-translate-y-1 ${btn}`}
           style={{
             color: s.color,
             "--glow": s.glow,

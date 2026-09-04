@@ -21,7 +21,7 @@ export default function SubmitPage() {
       </p>
 
       {reportable.length === 0 ? (
-        <div className="mt-10 rounded-xl border border-dashed border-rivals-border bg-rivals-surface p-10 text-center">
+        <div className="mt-10 glass-card glass-dashed rounded-3xl p-10 text-center">
           <span className="emoji text-4xl">🕖</span>
           <p className="mt-4 font-display text-xl font-bold text-rivals-gold">Nada que reportar todavía</p>
           <p className="mt-2 text-sm text-slate-400">
@@ -36,7 +36,7 @@ export default function SubmitPage() {
           {reportable.map((m) => (
             <div
               key={m.id}
-              className="flex items-center justify-between gap-3 rounded-xl border border-rivals-border bg-rivals-surface px-4 py-3"
+              className="flex items-center justify-between gap-3 glass-card rounded-3xl px-4 py-3"
             >
               <span className="text-sm font-semibold">
                 {teamById(m.homeTeamId)?.name} <span className="text-slate-500">vs</span>{" "}
@@ -47,7 +47,7 @@ export default function SubmitPage() {
               </span>
               <Link
                 href={`/report/${encodeURIComponent(m.id)}`}
-                className="shrink-0 rounded bg-rivals-red px-3 py-1.5 text-sm font-bold text-white hover:brightness-110"
+                className="soft-ring shrink-0 rounded-full bg-rivals-red px-3 py-1.5 text-sm font-bold text-white shadow-[0_4px_12px_rgba(230,57,70,0.3)] transition hover:brightness-110"
               >
                 Reportar resultado
               </Link>

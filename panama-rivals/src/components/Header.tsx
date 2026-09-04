@@ -26,7 +26,7 @@ export default function Header() {
     }`;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-rivals-border bg-rivals-bg/85 backdrop-blur supports-[backdrop-filter]:bg-rivals-bg/60">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-rivals-bg/70 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-rivals-bg/45">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         <Link
           href="/"
@@ -34,7 +34,7 @@ export default function Header() {
           className="flex items-center gap-3 font-display text-xl font-black tracking-tight"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Panamá Rivals" className="h-10 w-10 rounded-lg ring-1 ring-rivals-gold/30" />
+          <img src="/logo.png" alt="Panamá Rivals" className="h-10 w-10 rounded-xl ring-1 ring-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.4)]" />
           <span>{t("brand")}</span>
         </Link>
 
@@ -49,14 +49,14 @@ export default function Header() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setLang(lang === "es" ? "en" : "es")}
-            className="rounded border border-rivals-border px-2 py-1 text-xs font-bold text-slate-300 hover:text-white"
+            className="soft-ring rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-200 transition hover:bg-white/10 hover:text-white"
             aria-label="Switch language"
           >
             {lang === "es" ? "EN" : "ES"}
           </button>
           <button
             onClick={() => setOpen((o) => !o)}
-            className="rounded border border-rivals-border px-2 py-1 text-slate-300 hover:text-white md:hidden"
+            className="soft-ring rounded-full border border-white/10 bg-white/5 px-2.5 py-1.5 text-slate-300 transition hover:bg-white/10 hover:text-white md:hidden"
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
           >
@@ -74,14 +74,14 @@ export default function Header() {
       </div>
 
       {open && (
-        <nav className="border-t border-rivals-border bg-rivals-bg/95 backdrop-blur md:hidden">
+        <nav className="border-t border-white/10 bg-rivals-bg/80 backdrop-blur-xl md:hidden">
           <div className="mx-auto flex max-w-6xl flex-col px-4 py-2">
             {links.map(([key, href]) => (
               <Link
                 key={key}
                 href={href}
                 onClick={() => setOpen(false)}
-                className={`border-b border-rivals-border/50 py-3 text-base last:border-0 ${linkClass(href)}`}
+                className={`border-b border-white/5 py-3 text-base last:border-0 ${linkClass(href)}`}
               >
                 {t(key)}
               </Link>
