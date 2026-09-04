@@ -94,7 +94,7 @@ export default function Home() {
         <div className="mt-12 grid gap-5 md:grid-cols-3">
           {(["1", "2", "3"] as const).map((n, i) => (
             <div key={n} className="glass-card glass-hover rounded-3xl p-7 text-center md:text-left">
-              <span className="font-display text-5xl font-black text-rivals-red/20">{n}</span>
+              <span className="font-display text-5xl font-black text-rivals-red/60">{n}</span>
               <h3 className="mt-3 font-display text-xl font-bold text-rivals-gold">{t(`exp.${n}.title`)}</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-300">{t(`exp.${n}.body`)}</p>
             </div>
