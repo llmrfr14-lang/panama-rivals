@@ -39,6 +39,37 @@
     box-shadow:  0  0  0  3px rgba(58,134,255,0.35);
     border-color: rgba(58,134,255,0.7);
   }
+
+  /* Magnetic 3D tilt for the floating nav pill (CSA-style cursor-follow) */
+  .pill-tilt {
+    --rx: 0deg;
+    --ry:  0deg;
+    --tx: 0px;
+    --ty:  0px;
+    transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)) translate3d(var(--tx),var(--ty),0));
+    transform-style: preserve-3d;
+    will-change: transform;
+    transition: transform 0.45s cubic-bezier(0.22,1,0.36,1);
+  }
+
+  .pill-tilt:hover {
+    transition-duration: 0.12s;
+  }
+
+  /* Cursor spotlight glow for the hero */
+  .hero-spotlight {
+    position: absolute;
+    inset:  0;
+    pointer-events: none;
+    background: radial-gradient(320px 220px at var(--sx,50%)) var(--sy,50%), rgba(255,209,102,0.16), transparent 70%);
+    mix-blend-mode: screen;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+
+  .hero-spotlight-on {
+    opacity:  1;
+  }
 }
 
 :root {

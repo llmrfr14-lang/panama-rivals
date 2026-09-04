@@ -105,6 +105,39 @@ export default function Header() {
     };
   }, [open]);
 
+  const pillRef = useRef<HTMLDivElement | null>(null);
+
+  // Magnetic tilt — the glass pill leans toward the cursor and springs back on leave
+  useEffect(() => {
+    const pill = pillRef.current;
+    if (!pill) return;
+    const onMove = (e: PointerEvent) => {
+      const r = pill.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width; // 0..1
+      const y = (e.clientY - r.top) / r.height;
+      const rx = (0.5 - y) * 14; // deg
+      const ry = (x - 0.5) * 18;
+      const tx = (x -  0.5) * 16;
+      const ty = (y -  0.5) * 12;
+      pill.style.setProperty("--rx", `${rx.toFixed(2)}deg`);
+      pill.style.setProperty("--ry", `${ry.toFixed(2)}deg`);
+      pill.style.setProperty("--tx", `${tx.toFixed(1)}px`);
+      pill.style.setProperty("--ty", `${ty.toFixed(1)}px`);
+    };
+    const onLeave = () => {
+      pill.style.setProperty("--rx", "0deg");
+      pill.style.setProperty("--ry", "0deg");
+      pill.style.setProperty("--tx", "0px");
+      pill.style.setProperty("--ty", "0px");
+    };
+    pill.addEventListener("pointermove", onMove);
+    pill.addEventListener("pointerleave", onLeave);
+    return () => {
+      pill.removeEventListener("pointermove", onMove);
+      pill.removeEventListener("pointerleave", onLeave);
+    };
+  }, []);
+
   const linkClass = (href: string) =>
     `transition hover:text-rivals-gold ${
       pathname === href ? "font-semibold text-rivals-gold" : "text-slate-300"
@@ -114,7 +147,10 @@ export default function Header() {
     <>
       {/* Floating glass pill nav — CSA-style */}
       <nav className="fixed inset-x-0 top-0 z-50 flex justify-center px-4">
-        <div className="mt-3 flex h-14 w-max max-w-[calc(100vw-2rem)] items-center gap-1.5 rounded-2xl border border-white/10 bg-[#0b111c]/70 px-3 shadow-[0_10px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[#0b111c]/45">
+        <div
+            ref={pillRef}
+            className="pill-tilt mt-3 flex h-14 w-max max-w-[calc(100vw-2rem)] items-center gap-1.5 rounded-2xl border border-white/10 bg-[#0b111c]/70 px-3 shadow-[0_10px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[#0b111c]/45"
+          >
           <Link
             href="/"
             onClick={() => setOpen(false)}

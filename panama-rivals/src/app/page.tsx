@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { SocialIcons } from "@/components/SocialIcons";
@@ -21,11 +22,38 @@ const stats = [
 
 export default function Home() {
   const { t } = useI18n();
+  const heroRef = useRef<HTMLElement | null>(null);
+  const [spotOn, setSpotOn] = useState(false);
+
+  // Cursor spotlight: a soft gold glow follows the mouse inside the hero
+  useEffect(() => {
+    const hero = heroRef.current;
+    if (!hero) return;
+    const onMove = (e: PointerEvent) => {
+      const r = hero.getBoundingClientRect();
+      const x = e.clientX - r.left;
+      const y = e.clientY - r.top;
+      hero.style.setProperty("--sx", `${x.toFixed(1)}px`);
+      hero.style.setProperty("--sy", `${y.toFixed(1)}px`);
+      setSpotOn(true);
+    };
+    const onLeave = () => setSpotOn(false);
+    hero.addEventListener("pointermove", onMove);
+    hero.addEventListener("pointerleave", onLeave);
+    return () => {
+      hero.removeEventListener("pointermove", onMove);
+      hero.removeEventListener("pointerleave", onLeave);
+    };
+  }, []);
 
   return (
     <div className="relative">
       {/* ── HERO ── */}
-      <section className="relative mx-auto flex max-w-6xl flex-col items-center px-4 pb-16 pt-24 text-center md:pt-32">
+      <section
+        ref={heroRef}
+        className="relative mx-auto flex max-w-6xl flex-col items-center px-4 pb-16 pt-24 text-center md:pt-32"
+      >
+        <div className={`hero-spotlight${spotOn ? " hero-spotlight-on" : ""}`} aria-hidden="true" />
         <div className="relative">
           <div className="absolute inset-0 -z-10 scale-125 rounded-full bg-rivals-red blur-3xl opacity-30" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
