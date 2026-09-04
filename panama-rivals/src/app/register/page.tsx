@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { divisionForRank } from "@/lib/league";
 import { useStore, type PlayerInfo } from "@/lib/store";
 
 type CaptainForm = { discord: string; epicId: string; phone: string };
@@ -69,6 +70,24 @@ const [done, setDone] = useState(false);
           ? "The captain registers the team per tournament — name and a roster of 3. When the tournament starts, registration closes."
           : "El capitán registra el equipo por torneo — nombre y plantilla de 3. Cuando el torneo inicia, el registro cierra."}
       </p>
+
+      <div className="mt-6 flex flex-wrap items-center gap-2 text-sm">
+        <span className="text-slate-400">{en ? "Division:" : "División:"}</span>
+        {state.players.some((p) => divisionForRank(p.peakRank) === "elite") ? (
+          <span className="soft-ring rounded-full border border-rivals-gold/40 bg-rivals-gold/10 px-3 py-1 font-bold text-rivals-gold">
+            ⚡ Elite · Champion 3+
+          </span>
+        ) : (
+          <span className="soft-ring rounded-full border border-rivals-blue/40 bg-rivals-blue/10 px-3 py-1 font-bold text-rivals-blue">
+            🛡️ Challenger · ≤ Champion 2
+          </span>
+        )}
+        <p className="w-full text-xs text-slate-500">
+          {en
+            ? "A team is placed in Elite when any player's peak rank is Champion 3 or above."
+            : "El equipo entra en Elite cuando algún jugador tiene rank máximo Champion 3 o superior."}
+        </p>
+      </div>
 
       <form onSubmit={submit} className="mt-10 space-y-5 glass-card rounded-3xl p-6">
         <label className="block">

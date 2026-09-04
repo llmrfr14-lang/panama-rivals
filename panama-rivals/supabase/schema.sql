@@ -5,6 +5,7 @@ create table if not exists registrations (
   team_name text not null,
   captain text not null,
   players jsonb not null default '[]',
+  division text not null default 'challenger',
   group_id text,
   created_at bigint not null
 );

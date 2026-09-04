@@ -75,7 +75,12 @@ export default function AdminPage() {
           <div key={r.id} className="glass-card rounded-3xl p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="font-semibold">{r.teamName}</p>
+                <p className="font-semibold">
+                  {r.teamName}{" "}
+                  <span className={`text-xs font-bold uppercase ${r.division === "elite" ? "text-rivals-gold" : "text-rivals-blue"}`}>
+                    {r.division === "elite" ? "⚡ Elite" : "🛡️ Challenger"}
+                  </span>
+                </p>
                 <p className="text-xs text-slate-500">
                   Cap: {r.captain.discord || r.captain.epicId
                     ? `${r.captain.discord || "?"} / ${r.captain.epicId || "?"}`
@@ -100,10 +105,14 @@ export default function AdminPage() {
                 className="soft-ring rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-sm backdrop-blur-md transition focus:border-white/20"
               >
                 <option value="">Sin grupo</option>
-                {["A", "B", "C", "D"].map((g) => (
-                  <option key={g} value={g}>
-                    Grupo {g}
-                  </option>
+                {(["challenger", "elite"] as const).map((div) => (
+                  <optgroup key={div} label={div === "challenger" ? "Challenger (≤C2)" : "Elite (C3+)"}>
+                    {["A", "B", "C", "D"].map((g) => (
+                      <option key={`${div}-${g}`} value={`${div}-${g}`}>
+                        {div === "challenger" ? "Challenger" : "Elite"} · Grupo {g}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>

@@ -8,6 +8,8 @@ import { useI18n } from "@/lib/i18n";
 const links = [
   ["nav.home", "/"],
   ["nav.tournament", "/tournament"],
+  ["nav.challenger", "/challenger"],
+  ["nav.elite", "/elite"],
   ["nav.teams", "/teams"],
   ["nav.stats", "/stats"],
   ["nav.rules", "/rules"],
@@ -28,10 +30,22 @@ const icons: Record<string, React.ReactNode> = {
       <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
       <path d="M4 22h16" />
       <path d="M10 14.66V17c0 .55-.47.98-1.07.99H11c-.6 0-1-.44-1-.99v-2.34" />
-      <path d="M14 14.66V17c0 .55.47.98 1.07.99H13c.6 0 1-.44 1-.99v-2.34" />
-      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-      <path d="M6 4H2v2a6 6 0 0 0 4 4" />
-      <path d="M18 4h4v2a6 6 0 0 1-4 4" />
+    </>
+  ),
+  "/challenger": (
+    <>
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+      <path d="M4 22h16" />
+      <path d="M10 14.66V17c0 .55-.47.98-1.07.99H11c-.6 0-1-.44-1-.99v-2.34" />
+    </>
+  ),
+  "/elite": (
+    <>
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+      <path d="M4 22h16" />
+      <path d="M10 14.66V17c0 .55-.47.98-1.07.99H11c-.6 0-1-.44-1-.99v-2.34" />
     </>
   ),
   "/teams": (

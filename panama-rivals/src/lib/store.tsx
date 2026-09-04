@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Match, Player, StatLine, Submission, Team } from "./types";
 import { initialMatches, players as seedPlayers, teams as seedTeams } from "./seed";
+import { divisionForRank, Division, teamDivision } from "./league";
 import { getSupabase } from "./supabase/client";
 
 export type RivalContact = {
@@ -24,7 +25,8 @@ export type Registration = {
   teamName: string;
   captain: RivalContact;
   players: PlayerInfo[]; // exactly 3 — third is "NA" when 2v2
-  groupId: string | null;
+  division?: Division; // challenger (≤C2) | elite (≥C3) — derived from best player rank
+  groupId: string | null; // namespaced per division: "ch-A", "el-A", …
   createdAt: number;
 };
 
@@ -99,6 +101,7 @@ function regFromRow(r: any): Registration {
     teamName: r.team_name,
     captain: r.captain ?? { discord: "", epicId: "" },
     players: r.players ?? [],
+    division: r.division ?? "challenger",
     groupId: r.group_id ?? null,
     createdAt: Number(r.created_at),
   };
@@ -187,7 +190,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const upsertReg = (r: Registration) => {
     if (!sb) return;
-    sb.from("registrations").upsert({ id: r.id, team_name: r.teamName, captain: r.captain, players: r.players, group_id: r.groupId, created_at: r.createdAt }).then(() => {});
+    sb.from("registrations").upsert({ id: r.id, team_name: r.teamName, captain: r.captain, players: r.players, division: r.division ?? "challenger", group_id: r.groupId, created_at: r.createdAt }).then(() => {});
   };
   const upsertMatch = (m: Match) => {
     if (!sb) return;
@@ -199,11 +202,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const registerTeam: Store["registerTeam"] = (teamName, captain, players) => {
+    const division = players.some((p) => divisionForRank(p.peakRank) === "elite") ? "elite" : "challenger";
     const reg: Registration = {
       id: `reg-${Date.now()}`,
       teamName,
       captain,
       players,
+      division,
       groupId: null,
       createdAt: Date.now(),
     };
@@ -225,7 +230,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setState((s) => {
       const keep = s.matches.filter((m) => m.status !== "scheduled");
       const keptIds = new Set(keep.map((m) => m.id));
-      const fresh = ["A", "B", "C", "D"].flatMap((g) => groupMatchesFor(s.registrations, g));
+      const divisions: Division[] = ["challenger", "elite"];
+      const fresh = divisions.flatMap((div) =>
+        ["A", "B", "C", "D"].flatMap((g) => groupMatchesFor(s.registrations, `${div}-${g}`))
+      );
       const merged = [...keep, ...fresh.filter((m) => !keptIds.has(m.id))];
       fresh.forEach(upsertMatch);
       return { ...s, matches: merged };
