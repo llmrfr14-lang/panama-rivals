@@ -14,6 +14,7 @@ export type RivalContact = {
 export type PlayerInfo = {
   discord: string;
   epicId: string;
+  phone: string; // "NA" when 2v2 3rd slot
   nationality: "pa" | "int" | "na";
   peakRank: string; // "NA" when 2v2 3rd slot
 };

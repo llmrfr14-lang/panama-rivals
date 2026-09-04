@@ -90,7 +90,7 @@ export default function AdminPage() {
                   )}
                   <span className="mx-1.5 text-slate-600">·</span>
                   {r.players
-                    .map((p) => `${[p.discord, p.epicId].filter(Boolean).join(" / ") || "—"} ${p.nationality === "int" ? "🌎" : "🇵🇦"} ${p.peakRank || ""}`.trim())
+                    .map((p) => `${[p.discord, p.epicId].filter(Boolean).join(" / ") || "—"}${p.phone && p.phone !== "NA" ? " · 📞 " + p.phone : ""} ${p.nationality === "int" ? "🌎" : "🇵🇦"} ${p.peakRank || ""}`.trim())
                     .join(" · ")}
                 </p>
               </div>

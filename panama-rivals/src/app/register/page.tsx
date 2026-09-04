@@ -5,10 +5,10 @@ import { useI18n } from "@/lib/i18n";
 import { useStore, type PlayerInfo } from "@/lib/store";
 
 type CaptainForm = { discord: string; epicId: string; phone: string };
-type PlayerForm = { discord: string; epicId: string; nationality: string; peakRank: string };
+type PlayerForm = { discord: string; epicId: string; phone: string; nationality: string; peakRank: string };
 
 const emptyCaptain = (): CaptainForm => ({ discord: "", epicId: "", phone: "" });
-const emptyPlayer = (): PlayerForm => ({ discord: "", epicId: "", nationality: "", peakRank: "" });
+const emptyPlayer = (): PlayerForm => ({ discord: "", epicId: "", phone: "", nationality: "", peakRank: "" });
 
 export default function RegisterPage() {
   const { lang } = useI18n();
@@ -51,6 +51,7 @@ const [done, setDone] = useState(false);
       const blank3 = i === 2 && !p.discord.trim() && !p.epicId.trim() && !p.nationality && !p.peakRank.trim();
       return {
         discord: blank3 ? "NA" : p.discord.trim(),
+        phone: blank3 ? "NA" : p.phone.trim(),
         epicId: blank3 ? "NA" : p.epicId.trim(),
         nationality: blank3 ? "na" : ((p.nationality || "pa") as PlayerInfo["nationality"]),
         peakRank: blank3 ? "NA" : p.peakRank.trim(),
@@ -197,7 +198,22 @@ const [done, setDone] = useState(false);
                     <span className="emoji">🌎</span>
                     <span className="text-sm">Internacional</span>
                   </label>
-                </div>
+                
+              <label className="block">
+                <span className="text-xs text-slate-400">
+                  {en ? "Phone / WhatsApp" : "Teléfono / WhatsApp"}
+                </span>
+                <input
+                  type="tel"
+                  value={p.phone}
+                  onChange={(e) => setPlayer(i, "phone", e.target.value)}
+                  required={i < 2}
+                  className="mt-1 w-full soft-ring rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 backdrop-blur-md transition focus:border-white/20"
+                  placeholder={i === 2 ? "NA" : en ? "E.g.: +507 6XXX-XXXX" : "Ej: +507 6XXX-XXXX"}
+                />
+              </label>
+
+</div>
               </label>
               <label className="block">
                 <span className="text-xs text-slate-400">
