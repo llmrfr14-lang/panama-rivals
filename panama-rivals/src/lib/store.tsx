@@ -40,6 +40,7 @@ type Store = {
   registerTeam: (teamName: string, captain: RivalContact, players: PlayerInfo[]) => Registration;
   assignGroup: (registrationId: string, groupId: string | null) => void;
   reviewRegistration: (registrationId: string, status: RegistrationStatus) => void;
+  deleteRegistration: (registrationId: string) => void;
   generateSchedule: () => void;
   submitResult: (
     matchId: string,
@@ -242,6 +243,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const deleteRegistration: Store["deleteRegistration"] = (registrationId) => {
+    setState((s) => {
+      const next = s.registrations.filter((r) => r.id !== registrationId);
+      if (sb) sb.from("registrations").delete().eq("id", registrationId).then(() => {});
+      return { ...s, registrations: next };
+    });
+  };
+
   const generateSchedule: Store["generateSchedule"] = () => {
     setState((s) => {
       const keep = s.matches.filter((m) => m.status !== "scheduled");
@@ -365,6 +374,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         submitResult,
         approve,
         reviewRegistration,
+        deleteRegistration,
         decline,
         teamById,
         playerById,

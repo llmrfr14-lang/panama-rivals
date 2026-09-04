@@ -14,6 +14,7 @@ export default function AdminPage() {
     registrations,
     approve,
     reviewRegistration,
+    deleteRegistration,
     decline,
     teamById,
     assignGroup,
@@ -27,6 +28,7 @@ export default function AdminPage() {
     const [code, setCode] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [wrong, setWrong] = useState(false);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   if (!unlocked) {
     return (
@@ -121,7 +123,13 @@ export default function AdminPage() {
               <span className={`text-xs font-bold uppercase tracking-widest ${r.status === "approved" ? "text-emerald-400" : r.status === "declined" ? "text-rose-400" : "text-amber-400"}`}>
                 {r.status === "approved" ? "✓ Aprobado" : r.status === "declined" ? "✕ Rechazado" : "⏳ Pendiente"}
               </span>
-              <div className="ml-auto flex gap-2">
+              <div className="ml-auto flex flex-wrap gap-2">
+                <button
+                  onClick={() => setOpenId(openId === r.id ? null : r.id)}
+                  className="soft-ring rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white transition hover:brightness-110"
+                >
+                  {openId === r.id ? "▲ Ocultar detalle" : "▼ Ver detalle"}
+                </button>
                 {r.status !== "approved" && (
                   <button
                     onClick={() => reviewRegistration(r.id, "approved")}
@@ -130,16 +138,56 @@ export default function AdminPage() {
                     ✓ Aceptar equipo
                   </button>
                 )}
-                {r.status !== "declined" && (
-                  <button
-                    onClick={() => reviewRegistration(r.id, "declined")}
-                    className="soft-ring rounded-full bg-rose-500/90 px-3 py-1 text-xs font-bold text-white transition hover:brightness-110"
-                  >
-                    ✕ Rechazar
-                  </button>
-                )}
+                <button
+                  onClick={() => {
+                    if (confirm(`Eliminar el registro de "${r.teamName}"? Esta acción no se puede deshacer.`)) {
+                      deleteRegistration(r.id);
+                      if (openId === r.id) setOpenId(null);
+                    }
+                  }}
+                  className="soft-ring rounded-full bg-rose-500/20 text-rose-400 px-3 py-1 text-xs font-bold transition hover:bg-rose-500/40"
+                >
+                  ✕ Eliminar registro
+                </button>
               </div>
             </div>
+            {openId === r.id && (
+              <div className="mt-3 grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm md:grid-cols-2">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-rivals-gold">Capitán</p>
+                  <dl className="mt-2 space-y-1.5">
+                    <div className="flex gap-2">
+                      <dt className="w-24 shrink-0 text-slate-500">Discord</dt>
+                      <dd className="break-all">{r.captain.discord || "—"}</dd>
+                    </div>
+                    <div className="flex gap-2">
+                      <dt className="w-24 shrink-0 text-slate-500">Epic</dt>
+                      <dd className="break-all">{r.captain.epicId || "—"}</dd>
+                    </div>
+                    <div className="flex gap-2">
+                      <dt className="w-24 shrink-0 text-slate-500">WhatsApp</dt>
+                      <dd className="break-all">{r.captain.phone || "—"}</dd>
+                    </div>
+                  </dl>
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-rivals-gold">Jugadores</p>
+                  {r.players.map((p, i) => (
+                    <div key={i} className="mt-2 rounded-xl border border-white/5 bg-white/5 px-3 py-2">
+                      <p className="font-semibold">{i === 0 ? "🎮 In-game" : `Jugador ${i + 1}`}</p>
+                      <p className="text-xs text-slate-400 break-all">
+                        {[p.discord, p.epicId].filter(Boolean).join(" / ") || "—"}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {p.phone && p.phone !== "NA" ? `📞 ${p.phone}` : "sin teléfono"}
+                        {" · "}{p.nationality === "int" ? "🌎 Internacional" : "🇵🇦 Panamá"}
+                        {" · Rank: "}{p.peakRank || "NA"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ))}
         {registrations.length === 0 && (
