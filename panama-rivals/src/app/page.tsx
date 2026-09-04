@@ -34,13 +34,13 @@ export default function Home() {
           <img src="/logo.png" alt="Panamá Rivals logo" className="h-36 w-36 rounded-3xl ring-1 ring-white/15 shadow-[0_24px_80px_rgba(0,0,0,0.6),0_0_60px_rgba(230,57,70,0.3)] md:h-44 md:w-44" />
         </div>
 
-        <p className="mt-10 text-xs font-black uppercase tracking-[0.4em] text-rivals-gold md:text-sm">{t("hero.overline")}</p>
-        <h1 className="mt-4 font-display text-5xl font-black leading-[0.95] tracking-tight md:text-8xl">
+        <p className="mt-6 text-sm font-bold uppercase tracking-[0.3em] text-rivals-gold">{t("hero.next")}</p>
+        <h1 className="mt-6 font-display text-5xl font-black leading-[0.95] tracking-tight drop-shadow-[0_2px_24px_rgba(230,57,70,0.35)] md:text-7xl">
           <span className="bg-gradient-to-r from-rivals-red via-rivals-gold to-rivals-blue bg-clip-text text-transparent">
-            {t("hero.kicker")}
+            {t("hero.title")}
           </span>
         </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-300 md:text-xl">{t("hero.sub")}</p>
+        <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-300">{t("hero.sub")}</p>
 
         <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link href="/register" className="soft-ring rounded-full bg-rivals-red px-8 py-3.5 font-bold text-white shadow-[0_8px_30px_rgba(230,57,70,0.45)] transition hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_12px_42px_rgba(230,57,70,0.55)]">
