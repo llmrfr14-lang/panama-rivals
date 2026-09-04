@@ -82,3 +82,36 @@ body {
 .emoji {
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
 }
+
+/* CSA-style floating ambient aura — slow drifting glow behind all content */
+.rivals-aura {
+  background:
+    radial-gradient(42rem 42rem at 18% 22%, rgba(58,134,255,0.28), transparent 65%),
+    radial-gradient(36rem 36rem at 82% 30%, rgba(230,57,70,0.26), transparent 65%),
+    radial-gradient(40rem 40rem at 55% 110%, rgba(255,209,102,0.14), transparent 65%),
+    linear-gradient(180deg, #0a0e16 0%, #070b12 100%);
+  animation: rivals-aura-drift 26s ease-in-out infinite alternate;
+  will-change: transform, background-position;
+}
+
+@keyframes rivals-aura-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    background-position: 0% 0%, 100% 0%, 50% 100%;
+  }
+  100% {
+    transform: translate3d(-2rem, 1rem, 0) scale(1.08);
+    background-position: 5% 8%, 92% 12%, 45% 95%;
+  }
+}
+
+@keyframes rivals-shimmer {
+  from { background-position: 200% center; }
+  to { background-position: -200% center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rivals-aura {
+    animation: none;
+  }
+}

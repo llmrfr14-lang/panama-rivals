@@ -26,37 +26,40 @@ export default function Header() {
     }`;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-rivals-bg/70 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-rivals-bg/45">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-        <Link
-          href="/"
-          onClick={() => setOpen(false)}
-          className="flex items-center gap-3 font-display text-xl font-black tracking-tight"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Panamá Rivals" className="h-10 w-10 rounded-xl ring-1 ring-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.4)]" />
-          <span>{t("brand")}</span>
-        </Link>
+    <>
+      {/* Floating glass pill nav — CSA-style */}
+      <nav className="fixed inset-x-0 top-0 z-50 flex justify-center px-4">
+        <div className="mt-3 flex h-14 w-max max-w-[calc(100vw-2rem)] items-center gap-1.5 rounded-2xl border border-white/10 bg-[#0b111c]/70 px-3 shadow-[0_10px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[#0b111c]/45">
+          <Link
+            href="/"
+            onClick={() => setOpen(false)}
+            className="flex shrink-0 items-center gap-2 pr-2 font-display text-base font-black tracking-tight"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Panamá Rivals" className="h-8 w-8 rounded-lg ring-1 ring-white/10" />
+            <span className="hidden lg:inline">{t("brand")}</span>
+          </Link>
 
-        <nav className="hidden gap-4 md:flex">
-          {links.map(([key, href]) => (
-            <Link key={key} href={href} className={`text-sm ${linkClass(href)}`}>
-              {t(key)}
-            </Link>
-          ))}
-        </nav>
+          <div className="mx-1 hidden h-6 w-px bg-white/15 md:block" />
 
-        <div className="flex items-center gap-2">
+          <nav className="hidden items-center gap-0.5 md:flex">
+            {links.map(([key, href]) => (
+              <Link key={key} href={href} className={`rounded-lg px-2.5 py-1.5 text-sm ${linkClass(href)}`}>
+                {t(key)}
+              </Link>
+            ))}
+          </nav>
+
           <button
             onClick={() => setLang(lang === "es" ? "en" : "es")}
-            className="soft-ring rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-200 transition hover:bg-white/10 hover:text-white"
+            className="soft-ring ml-1 shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-200 transition hover:bg-white/10 hover:text-white"
             aria-label="Switch language"
           >
             {lang === "es" ? "EN" : "ES"}
           </button>
           <button
             onClick={() => setOpen((o) => !o)}
-            className="soft-ring rounded-full border border-white/10 bg-white/5 px-2.5 py-1.5 text-slate-300 transition hover:bg-white/10 hover:text-white md:hidden"
+            className="soft-ring shrink-0 rounded-full border border-white/10 bg-white/5 px-2.5 py-1.5 text-slate-300 transition hover:bg-white/10 hover:text-white lg:hidden"
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
           >
@@ -71,17 +74,17 @@ export default function Header() {
             )}
           </button>
         </div>
-      </div>
+      </nav>
 
       {open && (
-        <nav className="border-t border-white/10 bg-rivals-bg/80 backdrop-blur-xl md:hidden">
-          <div className="mx-auto flex max-w-6xl flex-col px-4 py-2">
+        <nav className="fixed inset-x-3 top-16 z-40 rounded-2xl border border-white/10 bg-[#0b111c]/85 px-2 py-2 shadow-[0_16px_50px_rgba(0,0,0,0.5)] backdrop-blur-2xl lg:hidden">
+          <div className="flex flex-col">
             {links.map(([key, href]) => (
               <Link
                 key={key}
                 href={href}
                 onClick={() => setOpen(false)}
-                className={`border-b border-white/5 py-3 text-base last:border-0 ${linkClass(href)}`}
+                className={`rounded-xl px-3 py-2.5 text-base ${linkClass(href)}`}
               >
                 {t(key)}
               </Link>
@@ -89,6 +92,6 @@ export default function Header() {
           </div>
         </nav>
       )}
-    </header>
+    </>
   );
 }

@@ -23,10 +23,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap"
         />
       </head>
-      <body className="min-h-screen flex flex-col">
+      <body className="min-h-screen">
+        {/* Fixed ambient "wallpaper" — CSA-style floating backdrop, content scrolls over it */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0 -z-10"
+        >
+          <div className="rivals-aura absolute inset-0" />
+          <div className="absolute inset-0 opacity-40 [background:radial-gradient(1000px_600px_at_30%_20%,rgba(58,134,255,0.25),transparent_60%),radial-gradient(900px_600px_at_75%_25%,rgba(230,57,70,0.22),transparent_55%),radial-gradient(800px_600px_at_50%_110%,rgba(255,209,102,0.12),transparent_60%)]" />
+        </div>
         <Providers>
           <Header />
-          <main className="flex-1">{children}</main>
+          <main className="relative z-10 flex flex-col">{children}</main>
           <Footer />
         </Providers>
       </body>

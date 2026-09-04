@@ -23,9 +23,7 @@ export default function Home() {
   const { t } = useI18n();
 
   return (
-    <div className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 opacity-40 [background:radial-gradient(1000px_600px_at_30%_20%,rgba(58,134,255,0.25),transparent_60%),radial-gradient(900px_600px_at_75%_25%,rgba(230,57,70,0.22),transparent_55%),radial-gradient(800px_600px_at_50%_110%,rgba(255,209,102,0.12),transparent_60%)]" />
-
+    <div className="relative">
       {/* ── HERO ── */}
       <section className="relative mx-auto flex max-w-6xl flex-col items-center px-4 pb-16 pt-24 text-center md:pt-32">
         <div className="relative">
