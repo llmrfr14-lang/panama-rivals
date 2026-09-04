@@ -53,17 +53,6 @@ export default function Home() {
         ref={heroRef}
         className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-4 pb-16 pt-24 text-center md:pt-32"
       >
-        {/* Runway-generated ad banner as hero backdrop*/}
-        <div className="absolute inset-0 -z-1 overflow-hidden rounded-3xl border border-white/10" aria-hidden="true">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/bg-banner.webp"
-            alt=""
-            className="h-full w-full object-cover"
-          />
-          <div className="absolute inset-0 bg-[#070b12]/62" />
-          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-[#0b1018]" />
-        </div>
         <div className={`hero-spotlight${spotOn ? " hero-spotlight-on" : ""}`} aria-hidden="true" />
         <div className="relative">
           <div className="absolute inset-0 -z-10 scale-125 rounded-full bg-rivals-red blur-3xl opacity-30" />

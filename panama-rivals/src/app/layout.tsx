@@ -24,23 +24,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-screen">
-        {/* Fixed ambient "wallpaper" — CSA-style floating backdrop, content scrolls over it */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none fixed inset-0 z-0"
-        >
-          {/* Looped background video (put your clip in public/ and set VIDEO_URL below) */}
-          <video
-            className="rivals-bg-video"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-          >
-            <source src="/bg-video.mp4" type="video/mp4" />
-          </video>
-          <div className="absolute inset-0 bg-[#070b12]/55" />
+        {/* Fixed ambient backdrop — glass atmosphere only */}
+        <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0">
           <div className="rivals-aura absolute inset-0" />
         </div>
         <Providers>
