@@ -8,6 +8,7 @@ import { useI18n } from "@/lib/i18n";
 const groupKeys = ["A", "B", "C", "D"];
 
 export default function DivisionView({ division }: { division: Division }) {
+  const { t } = useI18n();
   const { matches, teamById, registrations } = useStore();
   const seeds = bracketSeeds(division, matches, registrations);
   const rows = leaderboard(division, matches, registrations).slice(0, 10);
@@ -22,10 +23,10 @@ export default function DivisionView({ division }: { division: Division }) {
       </div>
 
       <h2 className="mt-16 font-display text-4xl font-black">
-        {seeds?.fin ? "Final · Bo5" : seeds?.qf ? "Cuartos · Bo3" : "Eliminación directa"}
+        {seeds?.fin ? t("div.final") : seeds?.qf ? t("div.qf") : t("div.knockout")}
       </h2>
-      {seeds?.fin && <BracketFrame seeds={{ fin: seeds.fin }} meta={["Final · Bo5"]} labels={[["Final"]]} />}
-      {seeds?.qf && <BracketFrame seeds={seeds} meta={["Cuartos · Bo3", "Semis · Bo3", "Final · Bo5"]} labels={[["QF1", "QF2", "QF3", "QF4"], ["SF1", "SF2"], ["Final"]]} />}
+      {seeds?.fin && <BracketFrame seeds={{ fin: seeds.fin }} meta={[t("div.final")]} labels={[["Final"]]} />}
+      {seeds?.qf && <BracketFrame seeds={seeds} meta={[t("div.qf"), t("div.semis"), t("div.final")]} labels={[["QF1", "QF2", "QF3", "QF4"], ["SF1", "SF2"], ["Final"]]} />}
 
       <h2 className="mt-16 font-display text-3xl font-black">Leaderboard</h2>
       <div className="mt-4 overflow-x-auto rounded-xl border border-rivals-border">
@@ -58,7 +59,7 @@ export default function DivisionView({ division }: { division: Division }) {
             {rows.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-4 py-8 text-center text-sm italic text-slate-500">
-                  Sin stats aún — se llenan cuando se aprueben resultados.
+                  {t("div.noStats")}
 </td>
               </tr>
             )}
@@ -70,6 +71,7 @@ export default function DivisionView({ division }: { division: Division }) {
 }
 
 function GroupTable({ division, groupKey }: { division: Division; groupKey: string }) {
+  const { t } = useI18n();
   const { matches, teamById, registrations } = useStore();
   const rows = standingsFor(groupKey, division, matches, registrations);
   const groupMatches = matches.filter((m) => m.stage === "group" && m.groupId === `${division}-${groupKey}`);
@@ -93,13 +95,13 @@ function GroupTable({ division, groupKey }: { division: Division; groupKey: stri
                   {m.homeScore}–{m.awayScore}
                 </span>
               ) : m.status === "pending_review" ? (
-                <span className="text-amber-400">en revisión</span>
+                <span className="text-amber-400">{t("div.reviewing")}</span>
               ) : (
                 <Link
                   href={`/report/${encodeURIComponent(m.id)}`}
                   className="shrink-0 soft-ring rounded-full bg-rivals-red px-3 py-1 font-bold text-white shadow-[0_4px_12px_rgba(230,57,70,0.3)] transition hover:brightness-110"
                 >
-                  Reportar
+                  {t("div.report")}
                 </Link>
               )}
             </div>
@@ -120,7 +122,7 @@ function GroupTable({ division, groupKey }: { division: Division; groupKey: stri
           {rows.length === 0 && (
             <tr>
               <td colSpan={5} className="py-6 text-center text-sm italic text-slate-500">
-                Por definirse
+                {t("div.tbd")}
               </td>
             </tr>
           )}

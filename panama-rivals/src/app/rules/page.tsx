@@ -9,8 +9,8 @@ const rules: Rule[] = [
     title: { es: "Divisiones", en: "Divisions" },
     body: [
       {
-        es: "La Temporada 2 tiene dos divisiones separadas: Challenger (pico máximo Champion 2 y debajo)y Elite (Champion 3 y arriba. Cada división tiene sus propios grupos, bracket, stats y campeón.",
-        en: "Season 2 has two separate divisions: Challenger(peak rank Champion 2 and below)and Elite(Champion 3 and above. Each division has its own groups, bracket, stats and champion.",
+        es: "La Temporada 2 tiene dos divisiones separadas: Challenger (pico máximo Champion 2 y debajo) y Elite (Champion 3 y arriba. Cada división tiene sus propios grupos, bracket, stats y campeón.",
+        en: "Season 2 has two separate divisions: Challenger (peak rank Champion 2 and below) and Elite (Champion 3 and above. Each division has its own groups, bracket, stats and champion.",
       },
       {
         es: "El equipo entra en Elite si alguno de sus jugadores tiene rank máximo Champion 3 o superior; de lo contrario, en Challenger.",
@@ -27,15 +27,15 @@ const rules: Rule[] = [
       },
       {
         es: "Hasta 10 equipos: se forman 2 grupos y pasan los 2 mejores de cada uno.",
-        en: "Up to 10 teams:2 groups, top 2 from each advance.",
+        en: "Up to 10 teams:  2 groups, top 2 from each advance.",
       },
       {
         es: "De 10 a 23 equipos: se forman 4 grupos y pasan los 2 mejores de cada uno.",
-        en: "Between 10 and  ạ23 teams:4 groups, top 2 from each advance.",
+        en: "Between 10 and  23 teams:  4 groups, top 2 from each advance.",
       },
       {
         es: "24 equipos o más: se forman 8 grupos y pasa el mejor de cada uno.",
-        en: "24 or more teams:8 groups, top 1 from each advances.",
+        en: "24 or more teams:  8 groups, top 1 from each advance.",
       },
       {
         es: "Round robin de grupo: cada equipo juega contra todos en su grupo.",

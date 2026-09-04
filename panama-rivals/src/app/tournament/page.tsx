@@ -20,24 +20,24 @@ export default function TournamentPage() {
         </div>
         <div className="flex gap-2">
           <Link href="/challenger" className="soft-ring rounded-full border border-rivals-border bg-white/5 px-4 py-2 text-sm font-bold text-slate-200 transition hover:border-rivals-gold hover:text-rivals-gold">
-            Ver Challenger
+            {t("tournament.viewChallenger")}
           </Link>
           <Link href="/elite" className="soft-ring rounded-full border border-rivals-border bg-white/5 px-4 py-2 text-sm font-bold text-slate-200 transition hover:border-rivals-gold hover:text-rivals-gold">
-            Ver Elite
+            {t("tournament.viewElite")}
           </Link>
         </div>
       </div>
 
       <section className="mt-12">
         <h2 className="font-display text-3xl font-black text-rivals-gold">
-          Challenger <span className="text-sm font-bold text-slate-500">· ≤ Champion 2 · {challenger.length} equipos</span>
+          Challenger <span className="text-sm font-bold text-slate-500">· ≤ Champion 2 · {challenger.length} {t("tournament.teams")}</span>
         </h2>
         <DivisionView division="challenger" />
       </section>
 
       <section className="mt-20">
         <h2 className="font-display text-3xl font-black text-rivals-gold">
-          Elite <span className="text-sm font-bold text-slate-500">· Champion 3+ · {elite.length} equipos</span>
+          Elite <span className="text-sm font-bold text-slate-500">· Champion  ​3+ · {elite.length} {t("tournament.teams")}</span>
         </h2>
         <DivisionView division="elite" />
       </section>
