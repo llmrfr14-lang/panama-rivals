@@ -93,8 +93,8 @@ export default function RegisterPage() {
 
         <p className="text-xs text-slate-500">
           {en
-            ? "Format: 3v3 (3 players) or 2v2 (leave the 3rd player blank or \"NA\")."
-            : "Formato: 3v3 (3 jugadores) o 2v2 (deja el 3er jugador en blanco o \"NA\")."}
+            ? "Format: 3v3 (3 players) or 2v2 (write \"NA\" in the 3rd player slots)."
+            : "Formato: 3v3 (3 jugadores) o 2v2 (escribe \"NA\" en los campos del 3er jugador)."}
         </p>
 
         {state.players.map((p, i) => (
@@ -106,7 +106,7 @@ export default function RegisterPage() {
               {en ? "Player" : "Jugador"} {i + 1}
               {i === 2 && (
                 <span className="ml-2 text-xs font-normal text-slate-500">
-                  ({en ? "2v2? leave blank" : "¿2v2? deja en blanco"})
+                  ({en ? "2v2? write NA" : "¿2v2? escribe NA"})
                 </span>
               )}
             </legend>
@@ -118,7 +118,7 @@ export default function RegisterPage() {
                   onChange={(e) => setPlayer(i, "discord", e.target.value)}
                   required={i < 2}
                   className="mt-1 w-full soft-ring rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 backdrop-blur-md transition focus:border-white/20"
-                  placeholder={en ? "E.g.: @Rooster" : "Ej: @Rooster"}
+                  placeholder={i === 2 ? "NA" : en ? "E.g.: @Rooster" : "Ej: @Rooster"}
                 />
               </label>
               <label className="block">
@@ -130,7 +130,7 @@ export default function RegisterPage() {
                   onChange={(e) => setPlayer(i, "epicId", e.target.value)}
                   required={i < 2}
                   className="mt-1 w-full soft-ring rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 backdrop-blur-md transition focus:border-white/20"
-                  placeholder={en ? "E.g.: RoosterRL" : "Ej: RoosterRL"}
+                  placeholder={i === 2 ? "NA" : en ? "E.g.: RoosterRL" : "Ej: RoosterRL"}
                 />
               </label>
             </div>
