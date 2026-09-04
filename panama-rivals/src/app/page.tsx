@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
+import { SocialIcons } from "@/components/SocialIcons";
 
 const features = [
   { key: "groups", icon: "🗺️" },
@@ -39,6 +40,9 @@ export default function Home() {
           <a href="https://discord.gg/h66gaD8rA" className="rounded border border-rivals-border px-6 py-3 font-bold transition hover:border-rivals-gold hover:text-rivals-gold">
             {t("hero.discord")}
           </a>
+        </div>
+        <div className="mt-6">
+          <SocialIcons size="lg" />
         </div>
         <Link
           href="/season1"
