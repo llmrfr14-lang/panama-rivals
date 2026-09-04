@@ -93,6 +93,19 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+select option,
+select optgroup {
+  background-color:   #0b1020;
+  color:  #e2e8f0;
+}
+select option:hover {
+  background-color:   #1e293b;
+  color:  #fff;
+}
+select option:disabled {
+  color:  #64748b;
+}
+
 ::selection {
   background: rgba(58,134,255,0.35);
 }

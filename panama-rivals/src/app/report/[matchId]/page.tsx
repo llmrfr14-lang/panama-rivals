@@ -30,6 +30,17 @@ export default function ReportPage() {
   const [score, setScore] = useState("1:0");
   const [stats, setStats] = useState<Record<string, StatLine>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState(false);
+
+  const onPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) { setPhoto(null); setPhotoError(false); return; }
+    if (!file.type.startsWith("image/")) { setPhotoError(true); return; }
+    const reader = new FileReader();
+    reader.onload = () => { setPhoto(String(reader.result)); setPhotoError(false); };
+    reader.readAsDataURL(file);
+  };
 
   if (!match) {
     return (
@@ -114,10 +125,14 @@ export default function ReportPage() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!photo) {
+      setPhotoError(true);
+      return;
+    }
     const lines = rosters.flatMap(({ teamId, players }) =>
       players.map((p) => stats[p.id] ?? { playerId: p.id, teamId, goals: 0, assists: 0, saves: 0, shots: 0 })
     );
-    submitResult(matchId, "captain", h || 0, a || 0, lines);
+    submitResult(matchId, "captain", h || 0, a || 0, lines, photo ?? undefined);
     setSubmitted(true);
   };
 
@@ -178,6 +193,21 @@ export default function ReportPage() {
           </div>
         </div>
 
+        <label className="block">
+          <span className="text-sm text-slate-400">Foto del marcador final (obligatoria; TODOS los jugadores deben aparecer en la foto)</span>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={onPhoto}
+            className="mt-1 w-full soft-ring rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm backdrop-blur-md transition file:mr-3 file:rounded-full file:border-0 file:bg-rivals-blue file:px-4 file:py-2 file:text-white"
+          />
+          {photo && (
+            <img src={photo} alt="Marcador final" className="mt-2 h-24 w-auto rounded-lg border border-white/10 object-contain" />
+          )}
+          {photoError && (
+            <p className="mt-1 text-xs text-rose-400">Sube una foto del marcador final para enviar el resultado.</p>
+          )}
+        </label>
         <button
           type="submit"
           disabled={submitted || match.status !== "scheduled"}

@@ -7,6 +7,7 @@ create table if not exists registrations (
   players jsonb not null default '[]',
   division text not null default 'challenger',
   group_id text,
+  status text not null default 'pending',
   created_at bigint not null
 );
 
@@ -31,6 +32,7 @@ create table if not exists submissions (
   stats jsonb not null default '[]',
   status text not null default 'pending',
   note text,
+  photo text,
   created_at bigint not null
 );
 

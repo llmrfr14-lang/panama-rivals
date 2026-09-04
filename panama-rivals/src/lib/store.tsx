@@ -20,6 +20,8 @@ export type PlayerInfo = {
   peakRank: string; // "NA" when 2v2 3rd slot
 };
 
+export type RegistrationStatus = "pending" | "approved" | "declined";
+
 export type Registration = {
   id: string;
   teamName: string;
@@ -27,6 +29,7 @@ export type Registration = {
   players: PlayerInfo[]; // exactly 3 — third is "NA" when 2v2
   division?: Division; // challenger (≤C2) | elite (≥C3) — derived from best player rank
   groupId: string | null; // namespaced per division: "ch-A", "el-A", …
+  status: RegistrationStatus; // pending default — admin aprueba/declina el equipo
   createdAt: number;
 };
 
@@ -36,13 +39,15 @@ type Store = {
   registrations: Registration[];
   registerTeam: (teamName: string, captain: RivalContact, players: PlayerInfo[]) => Registration;
   assignGroup: (registrationId: string, groupId: string | null) => void;
+  reviewRegistration: (registrationId: string, status: RegistrationStatus) => void;
   generateSchedule: () => void;
   submitResult: (
     matchId: string,
     submittedBy: string,
     homeScore: number,
     awayScore: number,
-    stats: StatLine[]
+    stats: StatLine[],
+    photo?: string
   ) => void;
   approve: (submissionId: string) => void;
   decline: (submissionId: string, note?: string) => void;
@@ -103,6 +108,7 @@ function regFromRow(r: any): Registration {
     players: r.players ?? [],
     division: r.division ?? "challenger",
     groupId: r.group_id ?? null,
+    status: r.status ?? "pending",
     createdAt: Number(r.created_at),
   };
 }
@@ -110,7 +116,7 @@ function matchFromRow(r: any): Match {
   return { id: r.id, stage: r.stage, groupId: r.group_id ?? undefined, homeTeamId: r.home_team_id, awayTeamId: r.away_team_id, homeScore: r.home_score, awayScore: r.away_score, status: r.status, stats: r.stats ?? [] };
 }
 function subFromRow(r: any): Submission {
-  return { id: r.id, matchId: r.match_id, submittedBy: r.submitted_by, homeScore: r.home_score, awayScore: r.away_score, stats: r.stats ?? [], status: r.status, note: r.note ?? undefined, createdAt: Number(r.created_at) };
+  return { id: r.id, matchId: r.match_id, submittedBy: r.submitted_by, homeScore: r.home_score, awayScore: r.away_score, stats: r.stats ?? [], status: r.status, note: r.note ?? undefined, photo: r.photo ?? undefined, createdAt: Number(r.created_at) };
 }
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
@@ -190,7 +196,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const upsertReg = (r: Registration) => {
     if (!sb) return;
-    sb.from("registrations").upsert({ id: r.id, team_name: r.teamName, captain: r.captain, players: r.players, division: r.division ?? "challenger", group_id: r.groupId, created_at: r.createdAt }).then(() => {});
+    sb.from("registrations").upsert({ id: r.id, team_name: r.teamName, captain: r.captain, players: r.players, division: r.division ?? "challenger", group_id: r.groupId, status: r.status ?? "pending", created_at: r.createdAt }).then(() => {});
   };
   const upsertMatch = (m: Match) => {
     if (!sb) return;
@@ -198,7 +204,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
   const upsertSub = (s: Submission) => {
     if (!sb) return;
-    sb.from("submissions").upsert({ id: s.id, match_id: s.matchId, submitted_by: s.submittedBy, home_score: s.homeScore, away_score: s.awayScore, stats: s.stats, status: s.status, note: s.note ?? null, created_at: s.createdAt }).then(() => {});
+    sb.from("submissions").upsert({ id: s.id, match_id: s.matchId, submitted_by: s.submittedBy, home_score: s.homeScore, away_score: s.awayScore, stats: s.stats, status: s.status, note: s.note ?? null, photo: s.photo ?? null, created_at: s.createdAt }).then(() => {});
   };
 
   const registerTeam: Store["registerTeam"] = (teamName, captain, players) => {
@@ -210,6 +216,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       players,
       division,
       groupId: null,
+      status: "pending",
       createdAt: Date.now(),
     };
     setState((s) => ({ ...s, registrations: [...s.registrations, reg] }));
@@ -220,6 +227,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const assignGroup: Store["assignGroup"] = (registrationId, groupId) => {
     setState((s) => {
       const next = s.registrations.map((r) => (r.id === registrationId ? { ...r, groupId } : r));
+      const changed = next.find((r) => r.id === registrationId);
+      if (changed) upsertReg(changed);
+      return { ...s, registrations: next };
+    });
+  };
+
+  const reviewRegistration: Store["reviewRegistration"] = (registrationId, status) => {
+    setState((s) => {
+      const next = s.registrations.map((r) => (r.id === registrationId ? { ...r, status } : r));
       const changed = next.find((r) => r.id === registrationId);
       if (changed) upsertReg(changed);
       return { ...s, registrations: next };
@@ -240,7 +256,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const submitResult: Store["submitResult"] = (matchId, submittedBy, homeScore, awayScore, stats) => {
+  const submitResult: Store["submitResult"] = (matchId, submittedBy, homeScore, awayScore, stats, photo?) => {
     const sub: Submission = {
       id: `sub-${Date.now()}`,
       matchId,
@@ -249,6 +265,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       awayScore,
       stats,
       status: "pending",
+      photo,
       createdAt: Date.now(),
     };
     setState((s) => ({
@@ -347,6 +364,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         generateSchedule,
         submitResult,
         approve,
+        reviewRegistration,
         decline,
         teamById,
         playerById,

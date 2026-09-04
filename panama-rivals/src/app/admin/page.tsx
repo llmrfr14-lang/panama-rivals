@@ -13,6 +13,7 @@ export default function AdminPage() {
     matches,
     registrations,
     approve,
+    reviewRegistration,
     decline,
     teamById,
     assignGroup,
@@ -116,6 +117,29 @@ export default function AdminPage() {
                 ))}
               </select>
             </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-white/10 pt-3">
+              <span className={`text-xs font-bold uppercase tracking-widest ${r.status === "approved" ? "text-emerald-400" : r.status === "declined" ? "text-rose-400" : "text-amber-400"}`}>
+                {r.status === "approved" ? "✓ Aprobado" : r.status === "declined" ? "✕ Rechazado" : "⏳ Pendiente"}
+              </span>
+              <div className="ml-auto flex gap-2">
+                {r.status !== "approved" && (
+                  <button
+                    onClick={() => reviewRegistration(r.id, "approved")}
+                    className="soft-ring rounded-full bg-emerald-500/90 px-3 py-1 text-xs font-bold text-white transition hover:brightness-110"
+                  >
+                    ✓ Aceptar equipo
+                  </button>
+                )}
+                {r.status !== "declined" && (
+                  <button
+                    onClick={() => reviewRegistration(r.id, "declined")}
+                    className="soft-ring rounded-full bg-rose-500/90 px-3 py-1 text-xs font-bold text-white transition hover:brightness-110"
+                  >
+                    ✕ Rechazar
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         ))}
         {registrations.length === 0 && (
@@ -197,6 +221,22 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
+              {s.photo ? (
+                <div className="mt-3">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+                    Foto del marcador final — verifica que TODOS los jugadores aparecen
+                  </p>
+                  <a href={s.photo} target="_blank" rel="noreferrer" className="mt-1 inline-block">
+                    <img
+                      src={s.photo}
+                      alt="Marcador final"
+                      className="h-24 w-auto rounded-lg border border-white/10 object-contain hover:brightness-110"
+                    />
+                  </a>
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-amber-400">Sin foto del marcador</p>
+              )}
               <div className="mt-3 flex gap-2">
                 <button
                   onClick={() => approve(s.id)}

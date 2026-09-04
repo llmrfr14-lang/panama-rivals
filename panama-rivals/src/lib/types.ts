@@ -49,6 +49,7 @@ export type Submission = {
   stats: StatLine[];
   status: SubmissionStatus;
   note?: string;
+  photo?: string; // data URL del marcador final (todos los jugadores visibles
   createdAt: number;
 };
 

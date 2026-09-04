@@ -13,13 +13,15 @@ const emptyPlayer = (): PlayerForm => ({ discord: "", epicId: "", phone: "", nat
 
 export default function RegisterPage() {
   const { lang } = useI18n();
-  const { registerTeam } = useStore();
+  const { registerTeam, registrations } = useStore();
   const [state, setState] = useState({
     team: "",
     captain: emptyCaptain(),
     players: [emptyPlayer(), emptyPlayer(), emptyPlayer()],
   });
 const [done, setDone] = useState(false);
+  const myId = typeof window !== "undefined" ? localStorage.getItem("rivals_team_id") : null;
+  const myReg = myId ? registrations.find((r) => r.id === myId) : undefined;
 
 
 
@@ -58,7 +60,8 @@ const [done, setDone] = useState(false);
         peakRank: blank3 ? "NA" : p.peakRank.trim(),
       };
     };
-    registerTeam(state.team.trim(), normC(state.captain), state.players.map(normP));
+    const reg = registerTeam(state.team.trim(), normC(state.captain), state.players.map(normP));
+    localStorage.setItem("rivals_team_id", reg.id);
     setDone(true);
   };
 
@@ -269,6 +272,21 @@ const [done, setDone] = useState(false);
               ? "Your team is registered for Season 2. The admin assigns it to a group at the draw."
               : "Tu equipo quedó registrado para la Temporada 2. La admin lo asigna a un grupo en el sorteo."}
           </p>
+        )}
+        {myReg && myReg.status === "approved" && (
+          <div className="mt-4 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+            Nuestro equipo fue aceptado para la Temporada 2.
+          </div>
+        )}
+        {myReg && myReg.status === "declined" && (
+          <div className="mt-4 rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+            La admin rechazó este registro. Revisa tus datos y vuelve a enviar el formulario.
+          </div>
+        )}
+        {myReg && myReg.status === "pending" && (
+          <div className="mt-4 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+            Este equipo está pendiente de revisión por la admin..
+          </div>
         )}
       </form>
 
