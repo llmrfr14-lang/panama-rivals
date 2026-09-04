@@ -4,21 +4,39 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
+type Contact = { discord: string; epicId: string };
+
+const emptyContact = (): Contact => ({ discord: "", epicId: "" });
+
 export default function RegisterPage() {
   const { lang } = useI18n();
   const { registerTeam } = useStore();
-  const [state, setState] = useState({ team: "", captain: "", players: ["", "", ""] });
+  const [state, setState] = useState({
+    team: "",
+    captain: emptyContact(),
+    players: [emptyContact(), emptyContact(), emptyContact()],
+  });
   const [done, setDone] = useState(false);
 
   const en = lang === "en";
 
-  const setPlayer = (i: number, v: string) =>
-    setState((s) => ({ ...s, players: s.players.map((p, j) => (j === i ? v : p)) }));
+  const setCaptain = (k: keyof Contact, v: string) =>
+    setState((s) => ({ ...s, captain: { ...s.captain, [k]: v } }));
+
+  const setPlayer = (i: number, k: keyof Contact, v: string) =>
+    setState((s) => ({
+      ...s,
+      players: s.players.map((p, j) => (j === i ? { ...p, [k]: v } : p)),
+    }));
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (done) return;
-    registerTeam(state.team.trim(), state.captain.trim(), state.players.map((p) => p.trim()));
+    const norm = (c: Contact) => ({ discord: c.discord.trim(), epicId: c.epicId.trim() });
+    const players = state.players.map(norm);
+    // If 2v2: the 3rd slot may be blank — normalize to "NA"
+    const roster = players.map((p, i) => (i === 2 && !p.discord && !p.epicId ? { discord: "NA", epicId: "NA" } : p));
+    registerTeam(state.team.trim(), norm(state.captain), roster);
     setDone(true);
   };
 
@@ -43,31 +61,80 @@ export default function RegisterPage() {
           />
         </label>
 
-        <label className="block">
-          <span className="text-sm text-slate-400">
-            {en ? "Captain (Discord / handle)" : "Capitán (Discord / handle)"}
-          </span>
-          <input
-            required
-            value={state.captain}
-            onChange={(e) => setState((s) => ({ ...s, captain: e.target.value }))}
-            className="mt-1 w-full soft-ring rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 backdrop-blur-md transition focus:border-white/20"
-            placeholder={en ? "E.g.: @Tito / Tito#1234" : "Ej: @Tito / Tito#1234"}
-          />
-        </label>
+        <fieldset className="rounded-2xl border border-white/8 bg-white/3 p-4">
+          <legend className="px-1 text-sm font-semibold text-rivals-gold">
+            {en ? "Captain" : "Capitán"}
+          </legend>
+          <div className="mt-2 space-y-3">
+            <label className="block">
+              <span className="text-xs text-slate-400">Discord</span>
+              <input
+                required
+                value={state.captain.discord}
+                onChange={(e) => setCaptain("discord", e.target.value)}
+                className="mt-1 w-full soft-ring rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 backdrop-blur-md transition focus:border-white/20"
+                placeholder={en ? "E.g.: @Tito or Tito#1234" : "Ej: @Tito o Tito#1234"}
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs text-slate-400">
+                {en ? "Epic Games ID" : "ID de Epic Games"}
+              </span>
+              <input
+                required
+                value={state.captain.epicId}
+                onChange={(e) => setCaptain("epicId", e.target.value)}
+                className="mt-1 w-full soft-ring rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 backdrop-blur-md transition focus:border-white/20"
+                placeholder={en ? "E.g.: TitoRL" : "Ej: TitoRL"}
+              />
+            </label>
+          </div>
+        </fieldset>
+
+        <p className="text-xs text-slate-500">
+          {en
+            ? "Format: 3v3 (3 players) or 2v2 (leave the 3rd player blank or \"NA\")."
+            : "Formato: 3v3 (3 jugadores) o 2v2 (deja el 3er jugador en blanco o \"NA\")."}
+        </p>
 
         {state.players.map((p, i) => (
-          <label key={i} className="block">
-            <span className="text-sm text-slate-400">
+          <fieldset
+            key={i}
+            className="rounded-2xl border border-white/8 bg-white/3 p-4"
+          >
+            <legend className="px-1 text-sm font-semibold text-rivals-gold">
               {en ? "Player" : "Jugador"} {i + 1}
-            </span>
-            <input
-              required
-              value={p}
-              onChange={(e) => setPlayer(i, e.target.value)}
-              className="mt-1 w-full soft-ring rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 backdrop-blur-md transition focus:border-white/20"
-            />
-          </label>
+              {i === 2 && (
+                <span className="ml-2 text-xs font-normal text-slate-500">
+                  ({en ? "2v2? leave blank" : "¿2v2? deja en blanco"})
+                </span>
+              )}
+            </legend>
+            <div className="mt-2 space-y-3">
+              <label className="block">
+                <span className="text-xs text-slate-400">Discord</span>
+                <input
+                  value={p.discord}
+                  onChange={(e) => setPlayer(i, "discord", e.target.value)}
+                  required={i < 2}
+                  className="mt-1 w-full soft-ring rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 backdrop-blur-md transition focus:border-white/20"
+                  placeholder={en ? "E.g.: @Rooster" : "Ej: @Rooster"}
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs text-slate-400">
+                  {en ? "Epic Games ID" : "ID de Epic Games"}
+                </span>
+                <input
+                  value={p.epicId}
+                  onChange={(e) => setPlayer(i, "epicId", e.target.value)}
+                  required={i < 2}
+                  className="mt-1 w-full soft-ring rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 backdrop-blur-md transition focus:border-white/20"
+                  placeholder={en ? "E.g.: RoosterRL" : "Ej: RoosterRL"}
+                />
+              </label>
+            </div>
+          </fieldset>
         ))}
 
         <button

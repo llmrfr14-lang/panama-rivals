@@ -5,11 +5,16 @@ import { Match, Player, StatLine, Submission, Team } from "./types";
 import { initialMatches, players as seedPlayers, teams as seedTeams } from "./seed";
 import { getSupabase } from "./supabase/client";
 
+export type RivalContact = {
+  discord: string;
+  epicId: string;
+};
+
 export type Registration = {
   id: string;
   teamName: string;
-  captain: string;
-  players: string[]; // exactly 3 handles
+  captain: RivalContact;
+  players: RivalContact[]; // exactly 3 — third is "NA" when 2v2
   groupId: string | null;
   createdAt: number;
 };
@@ -18,7 +23,7 @@ type Store = {
   matches: Match[];
   submissions: Submission[];
   registrations: Registration[];
-  registerTeam: (teamName: string, captain: string, players: string[]) => Registration;
+  registerTeam: (teamName: string, captain: RivalContact, players: RivalContact[]) => Registration;
   assignGroup: (registrationId: string, groupId: string | null) => void;
   generateSchedule: () => void;
   submitResult: (
@@ -80,7 +85,14 @@ function groupMatchesFor(registrations: Registration[], groupId: string): Match[
 
 // ---- Supabase row mappers ----
 function regFromRow(r: any): Registration {
-  return { id: r.id, teamName: r.team_name, captain: r.captain, players: r.players ?? [], groupId: r.group_id ?? null, createdAt: Number(r.created_at) };
+  return {
+    id: r.id,
+    teamName: r.team_name,
+    captain: r.captain ?? { discord: "", epicId: "" },
+    players: r.players ?? [],
+    groupId: r.group_id ?? null,
+    createdAt: Number(r.created_at),
+  };
 }
 function matchFromRow(r: any): Match {
   return { id: r.id, stage: r.stage, groupId: r.group_id ?? undefined, homeTeamId: r.home_team_id, awayTeamId: r.away_team_id, homeScore: r.home_score, awayScore: r.away_score, status: r.status, stats: r.stats ?? [] };
@@ -277,7 +289,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const seeded = seedPlayers.find((p) => p.id === id);
     if (seeded) return seeded;
     for (const reg of state.registrations) {
-      if (reg.players.includes(id)) return { id, handle: id, teamId: reg.id };
+      const match = reg.players.find((p) => p.discord === id || p.epicId === id);
+      if (match) return { id, handle: [match.discord, match.epicId].filter(Boolean).join(" / "), teamId: reg.id };
     }
     return undefined;
   };
@@ -288,7 +301,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (staticRoster.length > 0) return staticRoster;
     const reg = state.registrations.find((r) => r.id === teamId);
     if (!reg) return [];
-    return reg.players.map((handle) => ({ id: handle, handle, teamId: reg.id }));
+    return reg.players.map((p) => ({ id: p.discord || p.epicId, handle: [p.discord, p.epicId].filter(Boolean).join(" / "), teamId: reg.id }));
   };
 
   // NOTE: tokens derive from matchId only. Fine while local; once Supabase

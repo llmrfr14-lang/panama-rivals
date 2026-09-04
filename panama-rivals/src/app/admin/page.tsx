@@ -77,7 +77,13 @@ export default function AdminPage() {
               <div>
                 <p className="font-semibold">{r.teamName}</p>
                 <p className="text-xs text-slate-500">
-                  Cap: {r.captain} · {r.players.join(", ")}
+                  Cap: {r.captain.discord || r.captain.epicId
+                    ? `${r.captain.discord || "?"} / ${r.captain.epicId || "?"}`
+                    : "—"}
+                  <span className="mx-1.5 text-slate-600">·</span>
+                  {r.players
+                    .map((p) => `${p.discord || p.epicId ? (p.discord || "?") + " / " + (p.epicId || "?") : "—"}`)
+                    .join(" · ")}
                 </p>
               </div>
               <select
