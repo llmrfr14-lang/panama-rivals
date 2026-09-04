@@ -4,17 +4,6 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useStore, type PlayerInfo } from "@/lib/store";
 
-const RANKS: { v: string; l: string }[] = [
-  { v: "Bronze", l: "Bronce" },
-  { v: "Silver", l: "Plata" },
-  { v: "Gold", l: "Oro" },
-  { v: "Platinum", l: "Platino" },
-  { v: "Diamond", l: "Diamante" },
-  { v: "Champion", l: "Campeón" },
-  { v: "Grand Champion", l: "Gran Campeón" },
-  { v: "Supersonic Legend", l: "Leyenda Súper Sónica" },
-];
-
 type CaptainForm = { discord: string; epicId: string; phone: string };
 type PlayerForm = { discord: string; epicId: string; nationality: string; peakRank: string };
 
@@ -212,21 +201,15 @@ const [done, setDone] = useState(false);
               </label>
               <label className="block">
                 <span className="text-xs text-slate-400">
-                  {en ? "Peak rank" : "Rank máximo"}
+                  {en ? "Peak rank (e.g.: Diamond 2, D1, Champ 3...)" : "Rank máximo (ej: Diamante 2, D1, Champ 3...)"}
                 </span>
-                <select
+                <input
                   value={p.peakRank}
                   onChange={(e) => setPlayer(i, "peakRank", e.target.value)}
+                  required={i < 2}
                   className="mt-1 w-full soft-ring rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 backdrop-blur-md transition focus:border-white/20"
-                >
-                  <option value="">{en ? "Select rank" : "Selecciona rank"}</option>
-                  {RANKS.map((r) => (
-                    <option key={r.v} value={r.v}>
-                      {en ? r.v : r.l}
-                    </option>
-                  ))}
-                  <option value="NA">NA</option>
-                </select>
+                  placeholder={i === 2 ? "NA" : en ? "E.g.: Diamond 2" : "Ej: Diamante 2"}
+                />
               </label>
 </div>
           </fieldset>
