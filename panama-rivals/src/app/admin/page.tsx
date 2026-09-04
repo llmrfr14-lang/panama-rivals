@@ -80,9 +80,17 @@ export default function AdminPage() {
                   Cap: {r.captain.discord || r.captain.epicId
                     ? `${r.captain.discord || "?"} / ${r.captain.epicId || "?"}`
                     : "—"}
+                  {r.captain.phone && (
+                    <>
+                      <span className="mx-1.5 text-slate-600">·</span>
+                      <a href={`tel:${r.captain.phone}`} className="text-rivals-gold">
+                        📞 {r.captain.phone}
+                      </a>
+                    </>
+                  )}
                   <span className="mx-1.5 text-slate-600">·</span>
                   {r.players
-                    .map((p) => `${p.discord || p.epicId ? (p.discord || "?") + " / " + (p.epicId || "?") : "—"}`)
+                    .map((p) => `${[p.discord, p.epicId].filter(Boolean).join(" / ") || "—"} ${p.nationality === "int" ? "🌎" : "🇵🇦"} ${p.peakRank || ""}`.trim())
                     .join(" · ")}
                 </p>
               </div>

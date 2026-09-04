@@ -8,13 +8,21 @@ import { getSupabase } from "./supabase/client";
 export type RivalContact = {
   discord: string;
   epicId: string;
+  phone?: string; // captain only
+};
+
+export type PlayerInfo = {
+  discord: string;
+  epicId: string;
+  nationality: "pa" | "int" | "na";
+  peakRank: string; // "NA" when 2v2 3rd slot
 };
 
 export type Registration = {
   id: string;
   teamName: string;
   captain: RivalContact;
-  players: RivalContact[]; // exactly 3 — third is "NA" when 2v2
+  players: PlayerInfo[]; // exactly 3 — third is "NA" when 2v2
   groupId: string | null;
   createdAt: number;
 };
@@ -23,7 +31,7 @@ type Store = {
   matches: Match[];
   submissions: Submission[];
   registrations: Registration[];
-  registerTeam: (teamName: string, captain: RivalContact, players: RivalContact[]) => Registration;
+  registerTeam: (teamName: string, captain: RivalContact, players: PlayerInfo[]) => Registration;
   assignGroup: (registrationId: string, groupId: string | null) => void;
   generateSchedule: () => void;
   submitResult: (

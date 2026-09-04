@@ -2,41 +2,72 @@
 
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { useStore, type PlayerInfo } from "@/lib/store";
 
-type Contact = { discord: string; epicId: string };
+const RANKS: { v: string; l: string }[] = [
+  { v: "Bronze", l: "Bronce" },
+  { v: "Silver", l: "Plata" },
+  { v: "Gold", l: "Oro" },
+  { v: "Platinum", l: "Platino" },
+  { v: "Diamond", l: "Diamante" },
+  { v: "Champion", l: "Campeón" },
+  { v: "Grand Champion", l: "Gran Campeón" },
+  { v: "Supersonic Legend", l: "Leyenda Súper Sónica" },
+];
 
-const emptyContact = (): Contact => ({ discord: "", epicId: "" });
+type CaptainForm = { discord: string; epicId: string; phone: string };
+type PlayerForm = { discord: string; epicId: string; nationality: string; peakRank: string };
+
+const emptyCaptain = (): CaptainForm => ({ discord: "", epicId: "", phone: "" });
+const emptyPlayer = (): PlayerForm => ({ discord: "", epicId: "", nationality: "", peakRank: "" });
 
 export default function RegisterPage() {
   const { lang } = useI18n();
   const { registerTeam } = useStore();
   const [state, setState] = useState({
     team: "",
-    captain: emptyContact(),
-    players: [emptyContact(), emptyContact(), emptyContact()],
+    captain: emptyCaptain(),
+    players: [emptyPlayer(), emptyPlayer(), emptyPlayer()],
   });
-  const [done, setDone] = useState(false);
+const [done, setDone] = useState(false);
+
+
 
   const en = lang === "en";
 
-  const setCaptain = (k: keyof Contact, v: string) =>
+
+
+  const setCaptain = (k: keyof CaptainForm, v: string) =>
     setState((s) => ({ ...s, captain: { ...s.captain, [k]: v } }));
 
-  const setPlayer = (i: number, k: keyof Contact, v: string) =>
+
+
+  const setPlayer = (i: number, k: keyof PlayerForm, v: string) =>
     setState((s) => ({
       ...s,
       players: s.players.map((p, j) => (j === i ? { ...p, [k]: v } : p)),
     }));
 
+
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (done) return;
-    const norm = (c: Contact) => ({ discord: c.discord.trim(), epicId: c.epicId.trim() });
-    const players = state.players.map(norm);
-    // If 2v2: the 3rd slot may be blank — normalize to "NA"
-    const roster = players.map((p, i) => (i === 2 && !p.discord && !p.epicId ? { discord: "NA", epicId: "NA" } : p));
-    registerTeam(state.team.trim(), norm(state.captain), roster);
+    const normC = (c: CaptainForm) => ({
+      discord: c.discord.trim(),
+      epicId: c.epicId.trim(),
+      phone: c.phone.trim(),
+    });
+    const normP = (p: PlayerForm, i: number): PlayerInfo => {
+      const blank3 = i === 2 && !p.discord.trim() && !p.epicId.trim() && !p.nationality && !p.peakRank.trim();
+      return {
+        discord: blank3 ? "NA" : p.discord.trim(),
+        epicId: blank3 ? "NA" : p.epicId.trim(),
+        nationality: blank3 ? "na" : ((p.nationality || "pa") as PlayerInfo["nationality"]),
+        peakRank: blank3 ? "NA" : p.peakRank.trim(),
+      };
+    };
+    registerTeam(state.team.trim(), normC(state.captain), state.players.map(normP));
     setDone(true);
   };
 
@@ -88,7 +119,21 @@ export default function RegisterPage() {
                 placeholder={en ? "E.g.: TitoRL" : "Ej: TitoRL"}
               />
             </label>
-          </div>
+          
+              <label className="block">
+                <span className="text-xs text-slate-400">
+                  {en ? "Phone / WhatsApp" : "Teléfono / WhatsApp"}
+                </span>
+                <input
+                  required
+                  type="tel"
+                  value={state.captain.phone}
+                  onChange={(e) => setCaptain("phone", e.target.value)}
+                  className="mt-1 w-full soft-ring rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 backdrop-blur-md transition focus:border-white/20"
+                  placeholder={en ? "E.g.: +507 6XXX-XXXX" : "Ej: +507 6XXX-XXXX"}
+                />
+              </label>
+</div>
         </fieldset>
 
         <p className="text-xs text-slate-500">
@@ -133,7 +178,57 @@ export default function RegisterPage() {
                   placeholder={i === 2 ? "NA" : en ? "E.g.: RoosterRL" : "Ej: RoosterRL"}
                 />
               </label>
-            </div>
+            
+              <label className="block">
+                <span className="text-xs text-slate-400">
+                  {en ? "Is this player Panamanian?" : "¿Este jugador es panameño?"}
+                </span>
+                <div className="mt-1 grid grid-cols-2 gap-2">
+                  <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 cursor-pointer transition has-[:checked]:border-rivals-gold/60">
+                    <input
+                      type="radio"
+                      name={`nat-${i}`}
+                      value="pa"
+                      checked={(p.nationality || "pa") === "pa"}
+                      onChange={(e) => setPlayer(i, "nationality", e.target.value)}
+                      className="accent-rivals-gold"
+                    />
+                    <span className="emoji">🇵🇦</span>
+                    <span className="text-sm">Panameño</span>
+                  </label>
+                  <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 cursor-pointer transition has-[:checked]:border-rivals-blue/60">
+                    <input
+                      type="radio"
+                      name={`nat-${i}`}
+                      value="int"
+                      checked={(p.nationality || "pa") === "int"}
+                      onChange={(e) => setPlayer(i, "nationality", e.target.value)}
+                      className="accent-rivals-blue"
+                    />
+                    <span className="emoji">🌎</span>
+                    <span className="text-sm">Internacional</span>
+                  </label>
+                </div>
+              </label>
+              <label className="block">
+                <span className="text-xs text-slate-400">
+                  {en ? "Peak rank" : "Rank máximo"}
+                </span>
+                <select
+                  value={p.peakRank}
+                  onChange={(e) => setPlayer(i, "peakRank", e.target.value)}
+                  className="mt-1 w-full soft-ring rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 backdrop-blur-md transition focus:border-white/20"
+                >
+                  <option value="">{en ? "Select rank" : "Selecciona rank"}</option>
+                  {RANKS.map((r) => (
+                    <option key={r.v} value={r.v}>
+                      {en ? r.v : r.l}
+                    </option>
+                  ))}
+                  <option value="NA">NA</option>
+                </select>
+              </label>
+</div>
           </fieldset>
         ))}
 
