@@ -140,14 +140,14 @@ export default function AdminPage() {
                 )}
                 <button
                   onClick={() => {
-                    if (confirm(`Eliminar el registro de "${r.teamName}"? Esta acción no se puede deshacer.`)) {
+                    if (confirm(`Rechazar y eliminar el registro de "${r.teamName}"? Se borrará permanentemente.`)) {
                       deleteRegistration(r.id);
                       if (openId === r.id) setOpenId(null);
                     }
                   }}
                   className="soft-ring rounded-full bg-rose-500/20 text-rose-400 px-3 py-1 text-xs font-bold transition hover:bg-rose-500/40"
                 >
-                  ✕ Eliminar registro
+                  ✕ Rechazar
                 </button>
               </div>
             </div>
