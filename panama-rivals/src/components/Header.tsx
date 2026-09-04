@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
@@ -15,10 +15,62 @@ const links = [
   ["nav.register", "/register"],
 ] as const;
 
+const icons: Record<string, React.ReactNode> = {
+  "/": (
+    <path d="M3 10.5L12 3l9 7.5M5 9.5V21h5.25v-6h3.5v6H19V9.5" />
+  ),
+  "/tournament": (
+    <path d="M6 3h12v3H6zM4 6h16v3H4zM7 9v12m5-12v12m5-12v12" />
+  ),
+  "/teams": (
+    <path d="M12 12a4 4 0 1 0-8 4 4 0 0 0 8 0zM12 12a4 4 0 1 1 8 0M4 21c.8-3 3.6-5 7-5s6.2 2 7 5M16 8a3 3 0 1 0-6 3 3 0 0 0 6 0" />
+  ),
+  "/stats": (
+    <path d="M4 20h16M6 16l4-5 3 3 5-7" />
+  ),
+  "/rules": (
+    <path d="M12 3l2.3 4.7 5.2.7 1.6-3.8 3.7.9 5.2-2.3 4.8-4.7l-5.2.7-1.6-3.8-3.7.9-5.2-2.3-4.7z" />
+  ),
+  "/season1": (
+    <path d="M8 2v3M16 2v3M5 7h14M6 5h12v15H6zM8 5v2m8-2v2M9 14l2 2 4-4" />
+  ),
+  "/register": (
+    <path d="M9 12l2 2 4-4M12 21a9 9 0 1 0-18 9 9 0 0 0 18 0z" />
+  ),
+};
+
 export default function Header() {
   const { lang, setLang, t } = useI18n();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+
+  // Close the mobile Menú if one clicks outside it (or the trigger) or presses Esc
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent | TouchEvent) => {
+      const t = e.target as Node;
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(t) &&
+        !triggerRef.current?.contains(t)
+      ) {
+        setOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("touchstart", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   const linkClass = (href: string) =>
     `transition hover:text-rivals-gold ${
@@ -58,6 +110,7 @@ export default function Header() {
             {lang === "es" ? "EN" : "ES"}
           </button>
           <button
+            ref={triggerRef}
             onClick={() => setOpen((o) => !o)}
             className="soft-ring flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 pl-3 pr-2.5 text-xs font-semibold text-slate-200 transition-all duration-300 hover:bg-white/10 hover:text-white hover:scale-105 lg:hidden"
             aria-label={open ? "Close menu" : "Open menu"}
@@ -81,6 +134,7 @@ export default function Header() {
       {open && (
         <nav
           id="mobile-nav"
+          ref={menuRef}
           className="fixed inset-x-3 top-16 z-40 overflow-hidden rounded-2xl border border-white/10 bg-[#0b111c]/85 shadow-[0_16px_50px_rgba(0,0,0,0.5)] backdrop-blur-2xl lg:hidden"
         >
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
@@ -103,10 +157,21 @@ export default function Header() {
                 key={key}
                 href={href}
                 onClick={() => setOpen(false)}
-                className={`flex items-center justify-between rounded-xl px-3 py-3 text-base transition hover:bg-white/5 ${linkClass(href)}`}
+                className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-white/5 ${linkClass(href)}`}
               >
-                {t(key)}
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-40">
+                <span
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition ${
+                    pathname === href
+                      ? "border-rivals-gold/40 bg-rivals-gold/15 text-rivals-gold"
+                      : "border-white/10 bg-white/5 text-slate-300 group-hover:border-rivals-gold/30 group-hover:text-rivals-gold"
+                  }`}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    {icons[href]}
+                  </svg>
+                </span>
+                <span className="flex-1 text-base">{t(key)}</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-40 transition group-hover:translate-x-0.5 group-hover:opacity-80">
                   <path d="M9 6l6 6-6 6" />
                 </svg>
               </Link>
