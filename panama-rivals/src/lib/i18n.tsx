@@ -14,7 +14,7 @@ const dict: Record<string, Record<Lang, string>> = {
   "nav.s1": { es: "Temporada 1", en: "Season 1" },
   "nav.admin": { es: "Admin", en: "Admin" },
   "brand": { es: "Panamá Rivals", en: "Panama Rivals" },
-  "hero.title": { es: "18 CAPITÁNES.\n18 EQUIPOS.\n1 CAMPEÓN.", en: "18 CAPTAINS.\n18 TEAMS.\n1 CHAMPION." },
+  "hero.title": { es: "Panama Rivals", en: "Panama Rivals" },
   "hero.sub": { es: "Liga abierta de Rocket League en Panamá. Capitanes registran su equipo por torneo — gana 3 puntos, pierde 1, y los dos mejores de cada grupo avanzan a eliminación directa.", en: "Panama's open Rocket League league. Captains register a team per tournament — a win is 3 points, a loss −1, and the top two of each group advance to knockouts." },
   "hero.cta": { es: "Regístrate", en: "Register" },
   "hero.discord": { es: "Únete al Discord", en: "Join Discord" },
