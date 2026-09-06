@@ -58,6 +58,20 @@ alter table registrations enable row level security;
 alter table matches enable row level security;
 alter table submissions enable row level security;
 
+-- Drop policies first so this script is idempotent (safe to re-run)
+drop policy if exists "public read registrations" on registrations;
+drop policy if exists "public read matches" on matches;
+drop policy if exists "public read submissions" on submissions;
+drop policy if exists "anon insert registrations" on registrations;
+drop policy if exists "anon update registrations" on registrations;
+drop policy if exists "anon delete registrations" on registrations;
+drop policy if exists "anon insert matches" on matches;
+drop policy if exists "anon update matches" on matches;
+drop policy if exists "anon delete matches" on matches;
+drop policy if exists "anon insert submissions" on submissions;
+drop policy if exists "anon update submissions" on submissions;
+drop policy if exists "anon delete submissions" on submissions;
+
 -- Explicit grants (new Supabase projects no longer auto-grant anon CRUD
 -- on raw-SQL tables; without these, write/delete silently fail)
 grant usage on schema public to anon;
