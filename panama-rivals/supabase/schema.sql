@@ -94,6 +94,13 @@ create policy "anon insert submissions" on submissions for insert with check (tr
 create policy "anon update submissions" on submissions for update using (true);
 
 -- Realtime so every browser sees registrations/results live
-alter publication supabase_realtime add table registrations;
-alter publication supabase_realtime add table matches;
-alter publication supabase_realtime add table submissions;
+-- (Postgres has no ADD TABLE IF NOT EXISTS; ignore the duplicate-object error)
+do $$ begin
+  alter publication supabase_realtime add table registrations;
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter publication supabase_realtime add table matches;
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter publication supabase_realtime add table submissions;
+exception when duplicate_object then null; end $$;
