@@ -102,10 +102,17 @@ function groupMatchesFor(registrations: Registration[], groupId: string): Match[
 
 // ---- Supabase row mappers ----
 function regFromRow(r: any): Registration {
+  // captain may come back as a JSON string from older (text-column) rows
+  const captain =
+    typeof r.captain === "object" && r.captain !== null
+      ? r.captain
+      : typeof r.captain === "string"
+        ? (() => { try { return JSON.parse(r.captain); } catch { return { discord: r.captain }; } })()
+        : { discord: "", epicId: "" };
   return {
     id: r.id,
     teamName: r.team_name,
-    captain: r.captain ?? { discord: "", epicId: "" },
+    captain,
     players: r.players ?? [],
     division: r.division ?? "challenger",
     groupId: r.group_id ?? null,
@@ -197,15 +204,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const upsertReg = (r: Registration) => {
     if (!sb) return;
-    sb.from("registrations").upsert({ id: r.id, team_name: r.teamName, captain: r.captain, players: r.players, division: r.division ?? "challenger", group_id: r.groupId, status: r.status ?? "pending", created_at: r.createdAt }).then(() => {});
+    sb.from("registrations").upsert({ id: r.id, team_name: r.teamName, captain: r.captain, players: r.players, division: r.division ?? "challenger", group_id: r.groupId, status: r.status ?? "pending", created_at: r.createdAt }).then(() => {}, (e) => console.error("supabase upsert failed:", e));
   };
   const upsertMatch = (m: Match) => {
     if (!sb) return;
-    sb.from("matches").upsert({ id: m.id, stage: m.stage, group_id: m.groupId ?? null, home_team_id: m.homeTeamId, away_team_id: m.awayTeamId, home_score: m.homeScore, away_score: m.awayScore, status: m.status, stats: m.stats }).then(() => {});
+    sb.from("matches").upsert({ id: m.id, stage: m.stage, group_id: m.groupId ?? null, home_team_id: m.homeTeamId, away_team_id: m.awayTeamId, home_score: m.homeScore, away_score: m.awayScore, status: m.status, stats: m.stats }).then(() => {}, (e) => console.error("supabase upsert failed:", e));
   };
   const upsertSub = (s: Submission) => {
     if (!sb) return;
-    sb.from("submissions").upsert({ id: s.id, match_id: s.matchId, submitted_by: s.submittedBy, home_score: s.homeScore, away_score: s.awayScore, stats: s.stats, status: s.status, note: s.note ?? null, photo: s.photo ?? null, created_at: s.createdAt }).then(() => {});
+    sb.from("submissions").upsert({ id: s.id, match_id: s.matchId, submitted_by: s.submittedBy, home_score: s.homeScore, away_score: s.awayScore, stats: s.stats, status: s.status, note: s.note ?? null, photo: s.photo ?? null, created_at: s.createdAt }).then(() => {}, (e) => console.error("supabase upsert failed:", e));
   };
 
   const registerTeam: Store["registerTeam"] = (teamName, captain, players) => {
@@ -246,7 +253,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const deleteRegistration: Store["deleteRegistration"] = (registrationId) => {
     setState((s) => {
       const next = s.registrations.filter((r) => r.id !== registrationId);
-      if (sb) sb.from("registrations").delete().eq("id", registrationId).then(() => {});
+      if (sb) sb.from("registrations").delete().eq("id", registrationId).then(() => {}, (e) => console.error("supabase delete failed:", e));
       return { ...s, registrations: next };
     });
   };
