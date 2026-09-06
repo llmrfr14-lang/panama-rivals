@@ -1,2 +1,7 @@
 # TypeScript incremental build cache
 *.tsbuildinfo
+
+# Local env files (contain secrets — never commit)
+.env
+.env.local
+.env.*.local

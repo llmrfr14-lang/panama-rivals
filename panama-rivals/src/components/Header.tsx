@@ -8,6 +8,7 @@ import { useI18n } from "@/lib/i18n";
 const links = [
   ["nav.home", "/"],
   ["nav.tournament", "/tournament"],
+  ["nav.bracket", "/bracket"],
   ["nav.challenger", "/challenger"],
   ["nav.elite", "/elite"],
   ["nav.teams", "/teams"],
@@ -30,6 +31,16 @@ const icons: Record<string, React.ReactNode> = {
       <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
       <path d="M4 22h16" />
       <path d="M10 14.66V17c0 .55-.47.98-1.07.99H11c-.6 0-1-.44-1-.99v-2.34" />
+    </>
+  ),
+  "/bracket": (
+    <>
+      <path d="M6 3h12" />
+      <path d="M6 8h12" />
+      <path d="M6 13h8" />
+      <path d="M10 17V7" />
+      <path d="m9 8 1-1 1 1" />
+      <path d="M9 18h10" />
     </>
   ),
   "/challenger": (

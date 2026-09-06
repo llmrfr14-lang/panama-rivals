@@ -37,7 +37,7 @@ export default function TournamentPage() {
 
       <section className="mt-20">
         <h2 className="font-display text-3xl font-black text-rivals-gold">
-          Elite <span className="text-sm font-bold text-slate-500">· Champion  ​3+ · {elite.length} {t("tournament.teams")}</span>
+          Elite <span className="text-sm font-bold text-slate-500">· Champion  3+ · {elite.length} {t("tournament.teams")}</span>
         </h2>
         <DivisionView division="elite" />
       </section>

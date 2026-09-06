@@ -13,7 +13,7 @@ const emptyPlayer = (): PlayerForm => ({ discord: "", epicId: "", phone: "", nat
 
 export default function RegisterPage() {
   const { lang } = useI18n();
-  const { registerTeam, registrations } = useStore();
+  const { registerTeam, registrations, supabaseConfigured } = useStore();
   const [state, setState] = useState({
     team: "",
     captain: emptyCaptain(),
@@ -68,6 +68,13 @@ const [done, setDone] = useState(false);
   return (
     <div className="mx-auto max-w-xl px-4 py-16">
       <h1 className="font-display text-4xl font-black">{en ? "Register" : "Registro"}</h1>
+      {!supabaseConfigured && (
+        <p className="mt-4 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-300">
+          {en
+            ? "⚠️ Shared team list not configured — your registration only lives in this browser until the admin adds Supabase keys."
+            : "⚠️ La lista compartida de equipos no está configurada — tu registro solo vive en este navegador hasta que la admin agregue las claves de Supabase."}
+        </p>
+      )}
       <p className="mt-2 text-slate-400">
         {en
           ? "The captain registers the team per tournament — name and a roster of 3. When the tournament starts, registration closes."

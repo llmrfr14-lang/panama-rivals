@@ -17,7 +17,7 @@ export function teamDivision(teamId: string | null, registrations: { id: string;
   return reg?.division ?? "challenger";
 }
 
-/** Standings for a group inside a division. Pts: W=+3, D=+1, L=0. */
+/** Standings for a group inside a division. Pts: W=+3, D=0 (loss=0 per the official 2v2 format. */
 export function standingsFor(groupId: string, division: Division, matches: Match[], registrations: { id: string; division?: Division }[]): Standing[] {
   // Groups are namespaced per division ("ch-A"/"el-A") so both divisions keep A/B/C/D.
   const key = `${division}-${groupId}`;
@@ -29,6 +29,15 @@ export function standingsFor(groupId: string, division: Division, matches: Match
       if (id && !table[id]) table[id] = { teamId: id, w: 0, l:  0, pts:  0 };
     }
   }
+  const h2h = (a: string, b: string) => {
+    const head = matches.find((m) =>
+      m.stage ==="group" && m.groupId === key && m.status ==="approved" &&
+      ((m.homeTeamId === a && m.awayTeamId === b) || (m.homeTeamId === b && m.awayTeamId === a))
+    );
+    if (!head) return 0;
+    return head.homeTeamId === a ? head.homeScore - head.awayScore : head.awayScore - head.homeScore;
+
+  };
   for (const m of matches) {
     if (m.stage !== "group" || m.groupId !== key || m.status !== "approved") continue;
     const home = m.homeTeamId!;
@@ -42,11 +51,13 @@ export function standingsFor(groupId: string, division: Division, matches: Match
       table[away].w++; table[away].pts +=  3;
       table[home].l++;
     } else {
-      table[home].pts +=  1;
-      table[away].pts +=  1;
+      // Draws score  0 — per the official 2v2 format (win-only scoring.
+
+
+
     }
   }
-  return Object.values(table).sort((a, b) => b.pts - a.pts || b.w - a.w);
+  return Object.values(table).sort((a, b) => b.pts - a.pts || b.w - a.w || h2h(a.teamId, b.teamId)); 
 }
 
 export type BracketPairing = { home: string; away: string };
@@ -72,6 +83,50 @@ export function bracketSeeds(division: Division, matches: Match[], registrations
     };
   }
   return {};
+}
+
+export type PlacementRow = {
+  teamId: string;
+  place: number;  // 1..n (ties share the position number
+  points: number;  // PDF ranking: win n; runner n-1; SF losers n-3; QF losers n-7; else  0.
+  label: string;  // "1º", "2º", "3º–4º", "5º–8º"...
+};
+
+/** Official ranking points (PDF page 2): winner gets n points, runner-up n-1,
+  semis losers n-3, QF losers n-7, and anyone beyond the bracket gets 0. */
+export function placementPoints(participants: number, place: number, bracketTeams: number): number {
+  if (place > bracketTeams) return  0;
+  if (place <= 1) return participants;
+  if (place <= 2) return participants -  1;
+  if (place <= 4) return Math.max(1, participants -  3);
+  if (place <= 8) return Math.max(1, participants -  7);
+  return Math.max(1, participants -  15);
+}
+
+/** Per-division placement ranking, from bracket results. */
+export function placementFor(division: Division, matches: Match[], registrations: { id: string; division?: Division; groupId?: string | null; players: any[] }[]): PlacementRow[] {
+  const bracket = matches.filter((m) => m.stage !== "group" && m.groupId === division);
+  const fin = bracket.find((m) => m.stage ==="f");
+  const champion = fin ? (fin.ffWinner ?? (fin.homeScore > fin.awayScore ? fin.homeTeamId : fin.awayTeamId)) : null;
+  const groups = [...new Set(matches.filter((m) => m.stage ==="group" && m.groupId?.startsWith(`${division}-`)).map((m) => m.groupId!))];
+  const participants = registrations.filter((r) => r.division === division && r.groupId).length;
+  const bracketTeams = Math.min(participants, groups.length * 2);
+
+  const rows: PlacementRow[] = [];
+  const add = (teamId: string | null | undefined, place: number, label: string) => {
+    if (!teamId) return;
+    rows.push({ teamId, place, label, points: placementPoints(participants, place, bracketTeams) });
+  };
+  if (champion) {
+    add(champion, 1, "1º");
+    const runner = fin ? (fin.homeTeamId === champion ? fin.awayTeamId : fin.homeTeamId) : null;
+    add(runner, 2, "2º");
+  }
+  const sf = bracket.filter((m) => m.stage ==="sf" && m.status ==="approved");
+  sf.forEach((m) => { add(m.homeTeamId,  3, "3º–4º"); add(m.awayTeamId,  3, "3º–4º"); });
+  const qf = bracket.filter((m) => m.stage ==="qf" && m.status ==="approved");
+  qf.forEach((m) => { add(m.homeTeamId,  5, "5º–8º"); add(m.awayTeamId,  5, "5º–8º"); });
+  return rows.filter((r) => r.points >  0).sort((a, b) => b.points - a.points);
 }
 
 export type LeaderboardRow = {

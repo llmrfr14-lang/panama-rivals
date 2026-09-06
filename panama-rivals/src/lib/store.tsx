@@ -1,9 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Match, Player, StatLine, Submission, Team } from "./types";
+import { Match, Player, Stage, StatLine, Submission, Team } from "./types";
 import { initialMatches, players as seedPlayers, teams as seedTeams } from "./seed";
-import { divisionForRank, Division, teamDivision } from "./league";
+import { bracketSeeds, divisionForRank, Division, teamDivision } from "./league";
 import { getSupabase } from "./supabase/client";
 
 export type RivalContact = {
@@ -37,12 +37,16 @@ type Store = {
   matches: Match[];
   submissions: Submission[];
   registrations: Registration[];
-  registerTeam: (teamName: string, captain: RivalContact, players: PlayerInfo[]) => Registration;
+  supabaseConfigured: boolean;
+ registerTeam: (teamName: string, captain: RivalContact, players: PlayerInfo[]) => Registration;
   assignGroup: (registrationId: string, groupId: string | null) => void;
   reviewRegistration: (registrationId: string, status: RegistrationStatus) => void;
   deleteRegistration: (registrationId: string) => void;
   generateSchedule: () => void;
-  submitResult: (
+  generateBracket: (division: Division, startAt?: number) => void;
+  checkInTeam: (matchId: string, teamId: string) => void;
+  applyCheckInDeadlines: () => void;
+  submitResult:(
     matchId: string,
     submittedBy: string,
     homeScore: number,
@@ -121,7 +125,20 @@ function regFromRow(r: any): Registration {
   };
 }
 function matchFromRow(r: any): Match {
-  return { id: r.id, stage: r.stage, groupId: r.group_id ?? undefined, homeTeamId: r.home_team_id, awayTeamId: r.away_team_id, homeScore: r.home_score, awayScore: r.away_score, status: r.status, stats: r.stats ?? [] };
+  return {
+    id: r.id,
+    stage: r.stage,
+    groupId: r.group_id ?? undefined,
+    homeTeamId: r.home_team_id,
+    awayTeamId: r.away_team_id,
+    homeScore: r.home_score,
+    awayScore: r.away_score,
+    status: r.status,
+    stats: r.stats ?? [],
+    scheduledAt: r.scheduled_at ?? undefined,
+    checkedIn: r.checked_in ?? null,
+    ffWinner: r.ff_winner ?? null,
+  };
 }
 function subFromRow(r: any): Submission {
   return { id: r.id, matchId: r.match_id, submittedBy: r.submitted_by, homeScore: r.home_score, awayScore: r.away_score, stats: r.stats ?? [], status: r.status, note: r.note ?? undefined, photo: r.photo ?? undefined, createdAt: Number(r.created_at) };
@@ -202,13 +219,40 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Auto bracket: once every group match for a division is approved, generate the bracket.
+  // (Admin can always force/regenerate from the admin page.)
+  useEffect(() => {
+    if (!hydrated) return;
+    const divisions: Division[] = ["challenger", "elite"];
+    for (const div of divisions) {
+      const groupIds = [...new Set(state.registrations.filter((r) => r.division === div).map((r) => r.groupId).filter(Boolean))];
+      if (groupIds.length === 0) continue;
+      const gms = state.matches.filter((m) => m.stage ==="group" && m.groupId && groupIds.includes(m.groupId));
+      const hasAll = gms.length > 0 && gms.every((m) => m.status ==="approved" || m.status ==="ff");
+      const hasBracket = state.matches.some((m) => m.stage !== "group" && m.groupId === div && m.status !== "scheduled");
+      if (hasAll && !hasBracket) generateBracket(div);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, state.matches, state.registrations]);
+
+
+  // Check-in FF deadline sweep — run on load and every 15s so no-shows auto-loss.
+
+  useEffect(() => {
+    if (!hydrated) return;
+    applyCheckInDeadlines();
+    const id = setInterval(applyCheckInDeadlines, 15 * 1000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
+
   const upsertReg = (r: Registration) => {
     if (!sb) return;
     sb.from("registrations").upsert({ id: r.id, team_name: r.teamName, captain: r.captain, players: r.players, division: r.division ?? "challenger", group_id: r.groupId, status: r.status ?? "pending", created_at: r.createdAt }).then(() => {}, (e) => console.error("supabase upsert failed:", e));
   };
   const upsertMatch = (m: Match) => {
     if (!sb) return;
-    sb.from("matches").upsert({ id: m.id, stage: m.stage, group_id: m.groupId ?? null, home_team_id: m.homeTeamId, away_team_id: m.awayTeamId, home_score: m.homeScore, away_score: m.awayScore, status: m.status, stats: m.stats }).then(() => {}, (e) => console.error("supabase upsert failed:", e));
+    sb.from("matches").upsert({ id: m.id, stage: m.stage, group_id: m.groupId ?? null, home_team_id: m.homeTeamId, away_team_id: m.awayTeamId, home_score: m.homeScore, away_score: m.awayScore, status: m.status, stats: m.stats, scheduled_at: m.scheduledAt ?? null, checked_in: m.checkedIn ?? null, ff_winner: m.ffWinner ?? null }).then(() => {}, (e) => console.error("supabase upsert failed:", e));
   };
   const upsertSub = (s: Submission) => {
     if (!sb) return;
@@ -266,12 +310,165 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const fresh = divisions.flatMap((div) =>
         ["A", "B", "C", "D"].flatMap((g) => groupMatchesFor(s.registrations, `${div}-${g}`))
       );
-      const merged = [...keep, ...fresh.filter((m) => !keptIds.has(m.id))];
+      const merged = [
+        ...keep,
+        ...fresh,
+      ];
       fresh.forEach(upsertMatch);
       return { ...s, matches: merged };
     });
   };
 
+const bracketWinner = (m: Match): string | null => {
+    if (m.ffWinner) return m.ffWinner;
+
+    if (m.status !== "approved") return null;
+    if (m.homeScore > m.awayScore) return m.homeTeamId;
+
+
+    if (m.awayScore > m.homeScore) return m.awayTeamId;
+
+    // Knockout final can't be a draw — if tied, leave unresolved for admin.
+    return null;
+  };
+
+
+
+
+  // Pure: once QF/SF winners are known, fill the next round's pairings.
+  const advanceBracketPure = (division: Division, matches: Match[]): Match[] => {
+    const qf = matches.filter((m) => m.stage ==="qf" && m.groupId === division).sort((a, b) => a.id.localeCompare(b.id));
+    const sf = matches.filter((m) => m.stage ==="sf" && m.groupId === division).sort((a, b) => a.id.localeCompare(b.id));
+    const fin = matches.find((m) => m.stage ==="f" && m.groupId === division);
+    const w = (m: Match | undefined) => (m ? bracketWinner(m) : null);
+    const q1 = w(qf[0]), q2 = w(qf[1]), q3 = w(qf[2]), q4 = w(qf[3]);
+    const s1 = w(sf[0]), s2 = w(sf[1]);
+
+    const byId = new Map(matches.map((m) => [m.id, m]));
+    const patch = (id: string, patch: Partial<Match>) => {
+      const prev = byId.get(id);
+      if (prev) byId.set(id, { ...prev, ...patch });
+    };
+
+    sf.forEach((m, i) => {
+      const home = i === 0 ? q1 : q3;
+      const away = i === 0 ? q2 : q4;
+      if ((m.homeTeamId ?? null) !== (home ?? null) || (m.awayTeamId ?? null) !== (away ?? null)) patch(m.id, { homeTeamId: home ?? null, awayTeamId: away ?? null });
+    });
+    if (fin && sf.length >= 2) {
+      if ((fin.homeTeamId ?? null) !== (s1 ?? null) || (fin.awayTeamId ?? null) !== (s2 ?? null)) patch(fin.id, { homeTeamId: s1 ?? null, awayTeamId: s2 ?? null });
+    }
+
+    return [...byId.values()];
+  };
+
+
+
+  const generateBracket: Store["generateBracket"] = (division, startAt?) => {
+    setState((s) => {
+      const divRegs = s.registrations.filter((r) => r.division === division);
+      const groupsWithTeams = ["A", "B", "C", "D"].map((g) => `${division}-${g}`).filter((gid) => divRegs.some((r) => r.groupId === gid));
+      const needsQF = groupsWithTeams.length >= 2;
+      if (!needsQF && groupsWithTeams.length !== 1) return s;
+      const seeds = bracketSeeds(division, s.matches, s.registrations); if (!seeds) return s; if (!needsQF) { if (!seeds?.fin) return s; } else { if (!seeds?.qf) return s; }
+      const canFinal = Boolean(seeds?.fin);
+      const canQF = Boolean(seeds?.qf);
+      if ((needsQF && !canQF) || (!needsQF && !canFinal)) return s;
+
+      const at = startAt ?? Date.now() + 15 * 60 *   1000;
+      const keep = s.matches.filter((m) => m.stage === "group" || m.status !== "scheduled");
+      const freshBracket: Match[] = [];
+      const pushMatch = (stage: Stage, i: number, home: string | null, away: string | null) => {
+        const id = `${division}-${stage}-${i}`;
+        freshBracket.push({
+          id,
+          stage,
+          groupId: division,
+          homeTeamId: home,
+          awayTeamId: away,
+          homeScore: 0,
+          awayScore:  0,
+          status: "scheduled",
+          stats: [],
+          scheduledAt: at + i * 20 * 60 * 1000,
+          checkedIn: null,
+          ffWinner: null,
+        });
+      };
+
+      if (needsQF && canQF) {
+        seeds.qf!.forEach((p,i) => pushMatch("qf", i,p.home, p.away));
+        const r1 = seeds.qf![1], r2 = seeds.qf![0], r3 = seeds.qf![3], r4 = seeds.qf![2];
+        pushMatch("sf", 0, r1.home, r1.away);
+        pushMatch("sf", 1, r3.home, r3.away);
+        pushMatch("f",  0,(seeds.fin?.home ?? seeds.qf![0].home), (seeds.fin?.away ?? seeds.qf![1].away));
+      } else if (!needsQF && canFinal) {
+        pushMatch("f",  0, seeds.fin!.home, seeds.fin!.away);
+      }
+
+      const keptBracket = keep.filter((m) => m.stage !== "group");
+      const keptById = new Map(keptBracket.map((m) => [m.id, m]));
+      const merged = [
+        ...s.matches.filter((m) => m.stage === "group"),
+        ...keptBracket,
+        ...freshBracket.filter((m) => !keptById.has(m.id) && !keptBracket.some((k) => k.id === m.id)),
+      ];
+      freshBracket.forEach((m) => { if (!keptById.has(m.id)) upsertMatch(m); });
+      return { ...s, matches: advanceBracketPure(division, merged) };
+    });
+  };
+
+
+
+
+  const checkInTeam: Store["checkInTeam"] = (matchId, teamId) => {
+    setState((s) => {
+      const next = s.matches.map((m) => {
+        if (m.id !== matchId) return m;
+        const marked = { ...m, checkedIn: teamId, status: (m.status ==="scheduled" ? "checked_in" : m.status) };
+        upsertMatch(marked);
+        return marked;
+      });
+      return { ...s, matches: next };
+    });
+  };
+
+
+
+  const applyCheckInDeadlines: Store["applyCheckInDeadlines"] = () => {
+    const now = Date.now();
+    setState((s) => {
+      const changed: Match[] = [];
+      let matches = s.matches.map((m) => {
+        if (m.stage ==="group" || m.status ==="approved" || m.status ==="ff" || !m.scheduledAt) return m;
+        if (m.status !== "checked_in" && m.status !== "scheduled") return m;
+        const deadline = m.scheduledAt + 15 * 60 *  1000;
+        if (now < deadline) return m;
+        let winner: string | null = null;
+        if (m.checkedIn === m.homeTeamId || m.checkedIn === m.awayTeamId) winner = m.checkedIn;
+
+
+
+        if (winner) {
+          const marked = { ...m, status: "ff" as const, ffWinner: winner, homeScore: winner === m.homeTeamId ?  1 :   0, awayScore: winner === m.awayTeamId ?  1 :   0 };
+          changed.push(marked);
+          return marked;
+        }
+        // Neither team checked in — leave open for admin to resolve manually.
+
+
+
+        return m;
+      });
+      if (changed.length) {
+        changed.forEach(upsertMatch);
+        const divisionsAffected = [...new Set(changed.map((m) => m.groupId).filter(Boolean))] as Division[];
+        divisionsAffected.forEach((d) => { matches = advanceBracketPure(d, matches); });
+        return { ...s, matches };
+      }
+      return s;
+    });
+  };
   const submitResult: Store["submitResult"] = (matchId, submittedBy, homeScore, awayScore, stats, photo?) => {
     const sub: Submission = {
       id: `sub-${Date.now()}`,
@@ -309,7 +506,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       ),
     }));
     upsertSub(approvedSub);
-    if (match) upsertMatch({ ...match, homeScore: sub.homeScore, awayScore: sub.awayScore, stats: sub.stats, status: "approved" });
+    if (match) {
+      const advanced = { ...match, homeScore: sub.homeScore, awayScore: sub.awayScore, stats: sub.stats, status: "approved" as const };
+      upsertMatch(advanced);
+      if (match.stage !== "group" && match.groupId) advanceBracketPure(match.groupId as Division, state.matches);
+    }
   };
 
   const decline = (submissionId: string, note?: string) => {
@@ -375,9 +576,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         matches: state.matches,
         submissions: state.submissions,
         registrations: state.registrations,
+        supabaseConfigured: Boolean(sb),
         registerTeam,
         assignGroup,
         generateSchedule,
+        generateBracket,
+        checkInTeam,
+        applyCheckInDeadlines,
         submitResult,
         approve,
         reviewRegistration,

@@ -12,6 +12,7 @@ export default function AdminPage() {
     submissions,
     matches,
     registrations,
+    supabaseConfigured,
     approve,
     reviewRegistration,
     deleteRegistration,
@@ -19,13 +20,16 @@ export default function AdminPage() {
     teamById,
     assignGroup,
     generateSchedule,
+    generateBracket,
+    applyCheckInDeadlines,
     reportToken,
   } = useStore();
 
   const pending = submissions.filter((s) => s.status === "pending");
   const processed = submissions.filter((s) => s.status !== "pending");
   const groupMatches = matches.filter((m) => m.stage === "group");
-    const [code, setCode] = useState("");
+  const [startAt, setStartAt] = useState("");
+  const [code, setCode] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [wrong, setWrong] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -68,8 +72,19 @@ export default function AdminPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-16">
       <h1 className="font-display text-4xl font-black">{t("nav.admin")}</h1>
+      {!supabaseConfigured && (
+        <p className="mt-4 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-300">
+          ⚠️ Supabase no está configurado (faltan las variables{" "}
+          <code className="font-mono">NEXT_PUBLIC_SUPABASE_URL</code> y{" "}
+          <code className="font-mono">NEXT_PUBLIC_SUPABASE_ANON_KEY</code>). Los registros
+          solo viven en este navegador. Configúralas en{" "}
+          <code className="font-mono">.env.example</code> para sincronizar entre dispositivos.
+
+        </p>
+      )}
       <p className="mt-2 text-slate-400">
         Revisa resultados enviados por capitanes. Aprobar actualiza standings y leaderboards al instante.
+
       </p>
 
       <h2 className="mt-10 font-display text-2xl font-bold text-rivals-gold">Registros Temporada 2</h2>
@@ -204,7 +219,40 @@ export default function AdminPage() {
         </button>
       )}
 
-      {groupMatches.length > 0 && (
+      <h2 className="mt-10 font-display text-2xl font-bold text-rivals-gold">Bracket & Check-in</h2>
+      <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <p className="text-sm text-slate-400">
+          Se genera automáticamente al aprobar todos los resultados de grupo — o fuérzalo aquí. El check-in abre a la hora del partido y el que no se presente pierde por FF tras 15 min.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-3">
+          {(["challenger", "elite"] as const).map((d) => (
+            <button
+              key={d}
+              onClick={() => generateBracket(d, startAt ? new Date(startAt).getTime() : undefined)}
+              className="soft-ring rounded-full bg-rivals-red/90 px-4 py-2 text-sm font-bold text-white transition hover:brightness-110"
+            >
+              {d === "challenger" ? "🛡️" : "⚡"} Generar bracket {d}
+            </button>
+          ))}
+          <label className="flex items-center gap-2 text-sm text-slate-400">
+            Inicio 15-min:
+            <input
+              type="datetime-local"
+              value={startAt}
+              onChange={(e) => setStartAt(e.target.value)}
+              className="soft-ring rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-sm backdrop-blur-md transition"
+            />
+          </label>
+          <button
+            onClick={applyCheckInDeadlines}
+            className="soft-ring rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-slate-200 transition hover:bg-white/15"
+          >
+            ⏳ Aplicar deadlines FF ahora
+          </button>
+        </div>
+      </div>
+
+      {(groupMatches.length > 0 || matches.some((m) => m.stage !== "group" && m.status === "scheduled")) && (
         <>
           <h2 className="mt-10 font-display text-2xl font-bold text-rivals-gold">
             Links de reporte para capitanes
@@ -213,7 +261,7 @@ export default function AdminPage() {
             Copia el link y mándaselo por DM al capitán de cada equipo — solo con ese link pueden reportar.
           </p>
           <div className="mt-4 space-y-2 text-xs">
-            {groupMatches.map((m) => (
+            {[...groupMatches, ...matches.filter((m) => m.stage !== "group" && m.status === "scheduled")].map((m) => (
               <div key={m.id} className="rounded border border-rivals-border px-3 py-2">
                 <p className="font-semibold text-slate-200">
                   {teamById(m.homeTeamId)?.name} vs {teamById(m.awayTeamId)?.name}{" "}
