@@ -72,6 +72,8 @@ type Persisted = {
   matches: Match[];
   submissions: Submission[];
   registrations: Registration[];
+  /** Division-state keys (e.g. "bracket-regen-challenger") that the cloud flagged as needing regeneration. */
+  bracketRegen: string[];
 };
 
 function shortToken(str: string) {
@@ -150,6 +152,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     matches: initialMatches,
     submissions: [],
     registrations: [],
+    bracketRegen: [],
   });
 
   const sb = typeof window !== "undefined" ? getSupabase() : null;
@@ -162,16 +165,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       if (sb) {
         try {
-          const [regs, ms, subs] = await Promise.all([
+          const [regs, ms, subs, flags] = await Promise.all([
             sb.from("registrations").select("*").order("created_at"),
             sb.from("matches").select("*"),
             sb.from("submissions").select("*").order("created_at"),
+            sb.from("bracket_state").select("key").ilike("key", "bracket-regen-%"),
           ]);
           if (!cancelled && regs.data && ms.data && subs.data) {
             setState({
               registrations: regs.data.map(regFromRow),
               matches: ms.data.map(matchFromRow),
               submissions: subs.data.map(subFromRow),
+              bracketRegen: (flags.data ?? []).map((f: { key: string }) => f.key),
             });
             setHydrated(true);
             return;
@@ -180,7 +185,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
       try {
         const raw = localStorage.getItem(LS_KEY);
-        if (raw && !cancelled) setState(JSON.parse(raw));
+        if (raw && !cancelled) {
+          const parsed = JSON.parse(raw) as Persisted;
+          setState({ ...parsed, bracketRegen: parsed.bracketRegen ?? [] });
+        }
       } catch { /* first visit or corrupt state */ }
       setHydrated(true);
     })();
@@ -202,7 +210,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (e.key !== LS_KEY || !e.newValue) return;
       try {
         const next = JSON.parse(e.newValue) as Persisted;
-        if (Array.isArray(next?.registrations)) setState(next);
+        if (Array.isArray(next?.registrations)) setState({ ...next, bracketRegen: next.bracketRegen ?? [] });
       } catch { /* malformed */ }
     };
     window.addEventListener("storage", onStorage);
@@ -229,6 +237,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           if (data) setState((s) => ({ ...s, submissions: data.map(subFromRow) }));
         });
       })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "bracket_state" }, (payload) => {
+        const key = (payload.new as { key?: string })?.key;
+        if (key?.startsWith("bracket-regen-")) {
+          setState((s) => ({ ...s, bracketRegen: [...s.bracketRegen, key] }));
+        }
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "bracket_state" }, (payload) => {
+        const key = (payload.old as { key?: string })?.key;
+        if (key) setState((s) => ({ ...s, bracketRegen: s.bracketRegen.filter((k) => k !== key) }));
+      })
       .subscribe();
     return () => { sb.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -245,10 +263,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const gms = state.matches.filter((m) => m.stage ==="group" && m.groupId && groupIds.includes(m.groupId));
       const hasAll = gms.length > 0 && gms.every((m) => m.status ==="approved" || m.status ==="ff");
       const hasBracket = state.matches.some((m) => m.stage !== "group" && m.groupId === div && m.status !== "scheduled");
-      if (hasAll && !hasBracket) generateBracket(div);
+      const flagKey = `bracket-regen-${div}`;
+      const flagged = state.bracketRegen.includes(flagKey);
+      if (flagged || (hasAll && !hasBracket)) generateBracket(div);
+      if (flagged) {
+        sb?.from("bracket_state").delete().eq("key", flagKey).then(() => {}, () => {});
+        setState((s) => ({ ...s, bracketRegen: s.bracketRegen.filter((k) => k !== flagKey) }));
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, state.matches, state.registrations]);
+  }, [hydrated, state.matches, state.registrations, state.bracketRegen]);
 
 
   // Check-in FF deadline sweep — run on load and every 15s so no-shows auto-loss.
@@ -582,7 +606,7 @@ const bracketWinner = (m: Match): string | null => {
 
   const resetData = () => {
     localStorage.removeItem(LS_KEY);
-    setState({ matches: initialMatches, submissions: [], registrations: [] });
+    setState({ matches: initialMatches, submissions: [], registrations: [], bracketRegen: [] });
   };
 
   return (

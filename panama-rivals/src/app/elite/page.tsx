@@ -2,6 +2,7 @@
 
 import DivisionView from "@/components/DivisionView";
 import NextMatchPanel from "@/components/NextMatchPanel";
+import AdvanceChip from "@/components/AdvanceChip";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
@@ -16,6 +17,7 @@ export default function ElitePage() {
         <span className="bg-gradient-to-r from-rivals-gold via-rivals-red to-rivals-blue bg-clip-text text-transparent">Elite</span>
       </h1>
       <p className="mt-2 text-slate-400">{t("div.eliteSub").replace("{n}", String(n))}</p>
+      <AdvanceChip division="elite" />
       <NextMatchPanel division="elite" titleLabel={t("bracket.nextUp")} />
       <DivisionView division="elite" />
     </div>

@@ -8,15 +8,27 @@ import { useI18n } from "@/lib/i18n";
 import { BracketTree } from "@/components/BracketTree";
 
 const myTeamKey = "pr-my-team";
+const divKey = "pr-div";
 
 export default function BracketPage() {
   const { t } = useI18n();
   const { matches, teamById, registrations, checkInTeam } = useStore();
-  const [div, setDiv] = useState<Division>("challenger");
+  const [div, setDiv] = useState<Division>(() => {
+    if (typeof window === "undefined") return "challenger";
+    const saved = window.localStorage.getItem(divKey) as Division | null;
+    return saved === "elite" ? "elite" : "challenger";
+  });
   const [myTeam, setMyTeam] = useState<string>("");
   const [now, setNow] = useState(Date.now());
 
-
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const fromQuery = params.get("div");
+    if (fromQuery === "challenger" || fromQuery === "elite") {
+      setDiv(fromQuery);
+      window.localStorage.setItem(divKey, fromQuery);
+    }
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem(myTeamKey);
@@ -69,7 +81,10 @@ export default function BracketPage() {
           {(["challenger", "elite"] as const).map((d) => (
             <button
               key={d}
-              onClick={() => setDiv(d)}
+              onClick={() => {
+              setDiv(d);
+              window.localStorage.setItem(divKey, d);
+            }}
               className={`rounded-full px-5 py-2 text-sm font-bold transition ${div === d ? "bg-rivals-red text-white shadow-[0_4px_16px_rgba(230,57,70,0.35)]" : "text-slate-300 hover:text-white"}`}
             >
               {d === "challenger" ? "🛡️ Challenger" : "⚡ Elite"}

@@ -114,3 +114,62 @@ exception when duplicate_object then null; end $$;
 do $$ begin
   alter publication supabase_realtime add table submissions;
 exception when duplicate_object then null; end $$;
+
+-- ── Server-side bracket regeneration watchdog ──
+-- The client generates brackets locally the first time a division's group
+-- stage completes. This tiny table persists "needs regen" in the cloud so:
+--  1. Admins don't have to remember to regenerate after edits;
+--  2. Every device sees the SAME decision (no one's localStorage wins>);
+--  3. No edge function / secret wiring required.
+
+
+create table if not exists bracket_state (
+  key text primary key,
+
+  value jsonb not null default '{}'::jsonb,
+  updated_at bigint not null default (extract(epoch from now())) * 1000
+);
+
+
+alter table bracket_state enable row level security;
+
+
+drop policy if exists "public read bracket_state" on bracket_state;
+drop policy if exists "anon update bracket_state" on bracket_state;
+
+
+grant usage on schema public to anon;
+grant select, update on bracket_state to anon;
+
+
+create policy "public read bracket_state" on bracket_state for select using (true);
+create policy "anon update bracket_state" on bracket_state for update using (true);
+
+
+do $$ begin
+  alter publication supabase_realtime add table bracket_state;
+exception when duplicate_object then null; end $$;
+
+
+-- Flip the watchdog flag when a division's group stage completes.
+
+
+create or replace function bracket_flag_bracket_regen() returns trigger language plpgsql as $$
+begin
+  if tg_table_name = 'matches' and new.status = 'approved' and new.stage = 'group' then
+    insert into bracket_state(key, value, updated_at)
+    values ('bracket-regen-' || new.group_id, '{}'::jsonb, (extract(epoch from now())) * 1000)
+    on conflict (key) do update set updated_at = (extract(epoch from now())) * 1000;
+    return new;
+  end if;
+
+
+  return new;
+end $$;
+
+
+drop trigger if exists bracket_state_regen on matches;
+
+
+create trigger bracket_state_regen after update of status on matches;
+for each row execute function bracket_flag_bracket_regen();
