@@ -42,8 +42,8 @@ const rules: Rule[] = [
         en: "Group round robin: every team plays everyone in its group.",
       },
       {
-        es: "Victoria = +3 puntos · Empate = +1 · Derrota = 0 puntos.",
-        en: "Win = +3 points · Draw = +1 · Loss = 0 points.",
+        es: "Victoria = +3 puntos · Empate = 0 puntos · Derrota = 0 puntos.",
+        en: "Win = +3 points · Draw =  0 points · Loss =  0 points.",
       },
       {
         es: "Al quedar dos equipos empatados a puntos, pasa el equipo que haya ganado el enfrentamiento directo.",

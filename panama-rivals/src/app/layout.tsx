@@ -1,13 +1,45 @@
 import type { Metadata, Viewport } from "next";
+import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const title = "Panamá Rivals — Rocket League de Panamá";
+const description =
+  "Liga abierta de Rocket League en Panamá. Registra tu equipo, juega grupos y eliminatorias en un solo día.. 🏆";
+
 export const metadata: Metadata = {
-  title: "Panamá Rivals — Rocket League de Panamá",
-  description:
-    "Monthly open Rocket League league in Panama. Captains register teams, battle through 4 groups and a knockout bracket, all in one night.",
+  title,
+  description,
+  openGraph: {
+    title,
+    description,
+    url: "https://panamarivals.com",
+    siteName: title,
+    locale: "es_PA",
+    type: "website",
+    images: [{ url: "https://panamarivals.com/logo.png", width: 512, height: 512, alt: "Panamá Rivals logo" }],
+  },
+  twitter: {
+    card: "summary",
+    title,
+    description,
+    images: ["https://panamarivals.com/logo.png"],
+  },
+  icons: { icon: "/logo.png", apple: "/logo.png" },
 };
 
 export const viewport: Viewport = {
@@ -16,7 +48,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className="dark">
+    <html lang="es" className={`dark ${outfit.variable} ${inter.variable}`}>
       <head>
         <link
           rel="stylesheet"
