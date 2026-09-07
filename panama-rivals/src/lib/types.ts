@@ -42,6 +42,8 @@ export type Match = {
   checkedIn?: string | null;
   /** Knockout only: team that won by forfeit (no-show. */
   ffWinner?: string | null;
+  /** Knockout only: epoch ms the FF deadline (scheduledAt +  15 min). */
+  ffDeadline?: number;
 };
 
 export type SubmissionStatus = "pending" | "approved" | "declined";

@@ -141,6 +141,7 @@ function matchFromRow(r: any): Match {
     scheduledAt: r.scheduled_at ?? undefined,
     checkedIn: r.checked_in ?? null,
     ffWinner: r.ff_winner ?? null,
+    ffDeadline: r.ff_deadline ?? undefined,
   };
 }
 function subFromRow(r: any): Submission {
@@ -292,7 +293,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
   const upsertMatch = (m: Match) => {
     if (!sb) return;
-    sb.from("matches").upsert({ id: m.id, stage: m.stage, group_id: m.groupId ?? null, home_team_id: m.homeTeamId, away_team_id: m.awayTeamId, home_score: m.homeScore, away_score: m.awayScore, status: m.status, stats: m.stats, scheduled_at: m.scheduledAt ?? null, checked_in: m.checkedIn ?? null, ff_winner: m.ffWinner ?? null }).then(() => {}, (e) => console.error("supabase upsert failed:", e));
+    sb.from("matches").upsert({ id: m.id, stage: m.stage, group_id: m.groupId ?? null, home_team_id: m.homeTeamId, away_team_id: m.awayTeamId, home_score: m.homeScore, away_score: m.awayScore, status: m.status, stats: m.stats, scheduled_at: m.scheduledAt ?? null, checked_in: m.checkedIn ?? null, ff_winner: m.ffWinner ?? null, ff_deadline: m.ffDeadline ?? null }).then(() => {}, (e) => console.error("supabase upsert failed:", e));
   };
   const upsertSub = (s: Submission) => {
     if (!sb) return;
@@ -482,7 +483,12 @@ const bracketWinner = (m: Match): string | null => {
       let matches = s.matches.map((m) => {
         if (m.stage ==="group" || m.status ==="approved" || m.status ==="ff" || !m.scheduledAt) return m;
         if (m.status !== "checked_in" && m.status !== "scheduled") return m;
-        const deadline = m.scheduledAt + 15 * 60 *  1000;
+        const deadline = m.ffDeadline ?? (m.scheduledAt + 15 * 60 *  1000);
+        if (m.ffDeadline == null && now >= m.scheduledAt) {
+          const withDeadline = { ...m, ffDeadline: deadline };
+          changed.push(withDeadline);
+          return withDeadline;
+        }
         if (now < deadline) return m;
         let winner: string | null = null;
         if (m.checkedIn === m.homeTeamId || m.checkedIn === m.awayTeamId) winner = m.checkedIn;

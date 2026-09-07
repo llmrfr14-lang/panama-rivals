@@ -43,6 +43,7 @@ create table if not exists matches (
 alter table matches add column if not exists scheduled_at bigint;
 alter table matches add column if not exists checked_in text;
 alter table matches add column if not exists ff_winner text;
+alter table matches add column if not exists ff_deadline bigint;
 
 
 create table if not exists submissions (
