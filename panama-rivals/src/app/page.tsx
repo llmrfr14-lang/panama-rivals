@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
+import { placementFor, type Division } from "@/lib/league";
 import { SocialIcons } from "@/components/SocialIcons";
 import Reveal from "@/components/Reveal";
 
@@ -24,9 +25,19 @@ const stats = [
 
 export default function Home() {
   const { t, lang } = useI18n();
-  const { registrations } = useStore();
+  const { registrations, matches } = useStore();
   const heroRef = useRef<HTMLElement | null>(null);
   const [spotOn, setSpotOn] = useState(false);
+
+  // Live Season 2 ranking — top 8 across both divisions (placement points per the official PDF).
+  const top8 = useMemo(() => {
+    const divs: Division[] = ["challenger", "elite"];
+    return divs
+      .flatMap((d) => placementFor(d, matches, registrations).map((r) => ({ ...r, div: d })))
+      .filter((r) => r.points >  0)
+      .sort((a, b) => b.points - a.points || a.label.localeCompare(b.label))
+      .slice(0, 8);
+  }, [matches, registrations]);
 
   // Cursor spotlight: a soft gold glow follows the mouse inside the hero
   useEffect(() => {
@@ -173,6 +184,60 @@ export default function Home() {
           </div>
         </Reveal>
       </section>
+
+      {top8.length > 0 && (
+        <Reveal className="relative mx-auto max-w-6xl px-4 pb-20">
+          <p className="text-center text-xs font-black uppercase tracking-[0.35em] text-rivals-gold">{t("bracket.ranking")}</p>
+          <h2 className="mx-auto mt-3 max-w-2xl text-center font-display text-3xl font-black leading-tight tracking-tight md:text-5xl">
+            {lang === "en" ? "Live Season 2 Ranking" : "Ranking en vivo · Temporada 2"}
+          </h2>
+          <div className="mx-auto mt-10 max-w-2xl overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md">
+            <table className="w-full text-sm">
+              <thead className="bg-white/2 text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 text-left">#</th>
+                  <th className="px-4 py-3 text-left">{lang === "en" ? "Team" : "Equipo"}</th>
+                  <th className="px-4 py-3 text-right">{t("bracket.pts")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {top8.map((r, i) => (
+                  <tr key={`${r.div}-${r.teamId}`} className="border-t border-rivals-border/50 transition hover:bg-white/5">
+                    <td className="px-4 py-3 text-slate-400">
+                      <span className="inline-flex items-center gap-2">
+                        {i === 0 && <span className="text-base">🥇</span>}
+                        {i === 1 && <span className="text-base">🥈</span>}
+                        {i === 2 && <span className="text-base">🥉</span>}
+                        {r.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-semibold">
+                      <span className="inline-flex items-center gap-2">
+                        {registrations.find((x) => x.id === r.teamId)?.teamName ?? r.teamId}
+                        <span
+                          className={
+                            r.div === "elite"
+                              ? "rounded-full bg-rivals-gold/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rivals-gold"
+                              : "rounded-full bg-rivals-blue/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rivals-blue"
+                          }
+                        >
+                          {r.div === "elite" ? "Elite" : "Challenger"}
+                        </span>
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right font-bold text-rivals-gold">{r.points} PTS</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-8 text-center">
+            <Link href="/bracket" className="soft-ring inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 py-3 text-sm font-bold text-slate-200 transition hover:bg-white/10 hover:text-rivals-gold">
+              {t("bracket.ranking")} completo →
+            </Link>
+          </div>
+        </Reveal>
+      )}
     </div>
   );
 }

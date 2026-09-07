@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { divisionForRank } from "@/lib/league";
 import { useStore, type PlayerInfo } from "@/lib/store";
@@ -282,7 +283,13 @@ const [done, setDone] = useState(false);
         )}
         {myReg && myReg.status === "approved" && (
           <div className="mt-4 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
-            Nuestro equipo fue aceptado para la Temporada 2.
+            <p>{en ? "Your team was accepted for Season 2." : "Tu equipo fue aceptado para la Temporada 2."}</p>
+            <Link
+              href="/bracket"
+              className="soft-ring mt-3 inline-flex items-center gap-2 rounded-full bg-rivals-gold px-4 py-1.5 text-xs font-bold text-[#0b111c] transition hover:brightness-110"
+            >
+              {en ? "See the bracket →" : "Ver el bracket →"}
+            </Link>
           </div>
         )}
         {myReg && myReg.status === "declined" && (

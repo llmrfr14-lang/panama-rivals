@@ -120,12 +120,11 @@ type I18nCtx = { lang: Lang; setLang: (l: Lang) => void; t: (key: string) => str
 const I18nContext = createContext<I18nCtx | null>(null);
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("es");
-
-  useEffect(() => {
-    const saved = localStorage.getItem("pr-lang") as Lang | null;
-    if (saved === "es" || saved === "en") setLangState(saved);
-  }, []);
+  const [lang, setLangState] = useState<Lang>(() => {
+    if (typeof window === "undefined") return "es";
+    const saved = localStorage.getItem("pr-lang");
+    return saved === "es" || saved === "en" ? saved : "es";
+  });
 
   const setLang = (l: Lang) => {
     setLangState(l);
