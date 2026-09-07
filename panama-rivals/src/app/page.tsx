@@ -53,6 +53,22 @@ export default function Home() {
         ref={heroRef}
         className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-4 pb-16 pt-24 text-center md:pt-32"
       >
+        {/* Background video — hero only */}
+        <video
+          className="absolute inset-0 -z-10 h-full w-full object-cover"
+          src="/hero-bg.mp4"
+          poster="/hero-bg-poster.jpg"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          aria-hidden="true"
+        />
+        <div
+          className="absolute inset-0 -z-10 bg-gradient-to-b from-rivals-bg/80 via-rivals-bg/50 to-rivals-bg"
+          aria-hidden="true"
+        />
         <div className={`hero-spotlight${spotOn ? " hero-spotlight-on" : ""}`} aria-hidden="true" />
         <div className="relative">
           <div className="absolute inset-0 -z-10 scale-125 rounded-full bg-rivals-red blur-3xl opacity-30" />
