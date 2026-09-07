@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
+import { useStore } from "@/lib/store";
 import { SocialIcons } from "@/components/SocialIcons";
+import Reveal from "@/components/Reveal";
 
 const features = [
   { icon: "🗺️", key: "groups" },
@@ -21,7 +23,8 @@ const stats = [
 ] as const;
 
 export default function Home() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const { registrations } = useStore();
   const heroRef = useRef<HTMLElement | null>(null);
   const [spotOn, setSpotOn] = useState(false);
 
@@ -78,7 +81,7 @@ export default function Home() {
 
         <p className="mt-6 text-sm font-bold uppercase tracking-[0.3em] text-rivals-gold">{t("hero.next")}</p>
         <h1 className="mt-6 font-display text-5xl font-black leading-[0.95] tracking-tight drop-shadow-[0_2px_24px_rgba(230,57,70,0.35)] md:text-7xl">
-          <span className="bg-gradient-to-r from-rivals-red via-rivals-gold to-rivals-blue bg-clip-text text-transparent">
+          <span className="shimmer-text bg-gradient-to-r from-rivals-red via-rivals-gold to-rivals-blue bg-clip-text text-transparent">
             {t("hero.title")}
           </span>
         </h1>
@@ -100,27 +103,42 @@ export default function Home() {
         <Link href="/season1" className="soft-ring mt-10 inline-flex items-center gap-2 rounded-full border border-rivals-gold/30 bg-rivals-gold/10 px-5 py-2 text-sm font-bold text-rivals-gold backdrop-blur transition hover:border-rivals-gold/60 hover:bg-rivals-gold/15">
           {t("hero.champ")} →
         </Link>
+
+        <Link
+          href="/teams"
+          className="soft-ring mt-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2 text-sm font-bold text-slate-200 backdrop-blur-md transition hover:border-rivals-blue/50 hover:text-white"
+        >
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rivals-blue/60" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rivals-blue" />
+          </span>
+          {lang === "en"
+            ? `${registrations.length} teams in · Season 2`
+            : `${registrations.length} equipos en · Temporada 2`}
+        </Link>
       </section>
 
       {/* ── EXPERIENCE ── */}
       <section className="relative mx-auto max-w-6xl px-4 py-20">
+        <Reveal>
         <p className="text-center text-xs font-black uppercase tracking-[0.35em] text-rivals-gold">{t("exp.kicker")}</p>
         <h2 className="mx-auto mt-3 max-w-2xl text-center font-display text-3xl font-black leading-tight tracking-tight md:text-5xl">{t("exp.title")}</h2>
 
         <div className="mt-12 grid gap-5 md:grid-cols-3">
           {(["1", "2", "3"] as const).map((n, i) => (
-            <div key={n} className="glass-card glass-hover rounded-3xl p-7 text-center md:text-left">
+            <Reveal key={n} delay={i * 120} className="glass-card glass-hover rounded-3xl p-7 text-center md:text-left h-full">
               <span className="font-display text-5xl font-black text-rivals-red/60">{n}</span>
               <h3 className="mt-3 font-display text-xl font-bold text-rivals-gold">{t(`exp.${n}.title`)}</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-300">{t(`exp.${n}.body`)}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
+        </Reveal>
       </section>
 
       {/* ── FORMAT / TIERS ── */}
       <section className="relative mx-auto max-w-6xl px-4 py-20">
-        <div className="glass-card rounded-3xl p-8 md:p-12">
+        <Reveal className="glass-card rounded-3xl p-8 md:p-12">
           <p className="text-center text-xs font-black uppercase tracking-[0.35em] text-rivals-gold">{t("tiers.kicker")}</p>
           <h2 className="mx-auto mt-3 max-w-xl text-center font-display text-2xl font-black leading-tight tracking-tight md:text-4xl">{t("tiers.title")}</h2>
 
@@ -138,20 +156,22 @@ export default function Home() {
               {t("tiers.cta")} →
             </Link>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* ── STATS ── */}
       <section className="relative mx-auto max-w-6xl px-4 py-20">
-        <p className="text-center text-xs font-black uppercase tracking-[0.35em] text-rivals-gold">{t("stats.kicker")}</p>
-        <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
-          {stats.map((s) => (
-            <div key={s.key} className="glass-card rounded-3xl p-6 text-center">
-              <p className="font-display text-4xl font-black text-rivals-gold md:text-5xl">{s.value}</p>
-              <p className="mt-1 text-xs uppercase tracking-widest text-slate-400">{t(s.key)}</p>
-            </div>
-          ))}
-        </div>
+        <Reveal>
+          <p className="text-center text-xs font-black uppercase tracking-[0.35em] text-rivals-gold">{t("stats.kicker")}</p>
+          <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+            {stats.map((s, i) => (
+              <Reveal key={s.key} delay={i * 100} className="glass-card rounded-3xl p-6 text-center">
+                <p className="font-display text-4xl font-black text-rivals-gold md:text-5xl">{s.value}</p>
+                <p className="mt-1 text-xs uppercase tracking-widest text-slate-400">{t(s.key)}</p>
+              </Reveal>
+            ))}
+          </div>
+        </Reveal>
       </section>
     </div>
   );

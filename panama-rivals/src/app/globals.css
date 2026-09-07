@@ -154,6 +154,18 @@ select option:disabled {
   to { background-position: -200% center; }
 }
 
+/* Animated sheen sweeping across gradient display text (used on hero title). */
+.shimmer-text {
+  background-size: 200% auto;
+  animation: rivals-shimmer 6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-text {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rivals-aura {
     animation: none;

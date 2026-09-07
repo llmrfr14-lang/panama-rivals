@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
+import { useStore } from "@/lib/store";
 
 const links = [
   ["nav.home", "/"],
@@ -99,10 +100,21 @@ const icons: Record<string, React.ReactNode> = {
 
 export default function Header() {
   const { lang, setLang, t } = useI18n();
+  const { registrations } = useStore();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [myReg, setMyReg] = useState<{ id: string; teamName: string; status: string } | null>(null);
   const menuRef = useRef<HTMLElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+
+  // Re-sync my-team chip whenever registrations change (remote approve/decline reflects live.);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const myId = localStorage.getItem("rivals_team_id");
+    if (!myId) { setMyReg(null); return; }
+    const reg = registrations.find((r) => r.id === myId);
+    setMyReg(reg ? { id: reg.id, teamName: reg.teamName, status: reg.status } : null);
+  }, [registrations]);
 
   // Close the mobile Menú if one clicks outside it (or the trigger) or presses Esc
   useEffect(() => {
@@ -224,6 +236,33 @@ export default function Header() {
           </button>
         </div>
       </nav>
+
+      {myReg && (
+        <Link
+          href={myReg.status === "approved" ? "/bracket" : "/register"}
+          className="fixed left-1/2 top-16 z-30 -translate-x-1/2 soft-ring inline-flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-full border border-white/10 bg-[#0b111c]/80 px-4 py-1.5 text-xs font-semibold text-slate-200 shadow-[0_8px_24px_rgba(0,0,0,0.4)] backdrop-blur-xl transition hover:border-rivals-gold/40 hover:text-rivals-gold"
+        >
+          <span className="emoji text-sm">
+            {myReg.status === "approved" ? "🛡️" : myReg.status === "declined" ? "🚫" : "⏳"}
+          </span>
+          <span className="truncate">{myReg.teamName}</span>
+          <span
+            className={
+              myReg.status === "approved"
+                ? "rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-emerald-300"
+                : myReg.status === "declined"
+                  ? "rounded-full bg-rose-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-rose-300"
+                  : "rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-amber-300"
+            }
+          >
+            {myReg.status === "approved"
+              ? lang === "es" ? "Aprobado" : "Approved"
+              : myReg.status === "declined"
+                ? lang === "es" ? "Rechazado" : "Declined"
+                : lang === "es" ? "Pendiente" : "Pending"}
+          </span>
+        </Link>
+      )}
 
       {open && (
         <nav

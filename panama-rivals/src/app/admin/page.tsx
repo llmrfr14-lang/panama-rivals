@@ -4,10 +4,8 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
-const ADMIN_CODE = process.env.NEXT_PUBLIC_ADMIN_CODE ?? "fieles-2026-campeon";
-
 export default function AdminPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const {
     submissions,
     matches,
@@ -32,7 +30,31 @@ export default function AdminPage() {
   const [code, setCode] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [wrong, setWrong] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+
+  const verifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (checking || !code.trim()) return;
+    setChecking(true);
+    try {
+      const res = await fetch("/api/admin-auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: code.trim() }),
+      });
+      if (res.ok) {
+        setUnlocked(true);
+        setWrong(false);
+      } else {
+        setWrong(true);
+      }
+    } catch {
+      setWrong(true);
+    } finally {
+      setChecking(false);
+    }
+  };
 
   if (!unlocked) {
     return (
@@ -40,18 +62,7 @@ export default function AdminPage() {
         <p className="emoji text-4xl">🔒</p>
         <h1 className="mt-4 font-display text-2xl font-black text-rivals-gold">Solo admin</h1>
         <p className="mt-2 text-sm text-slate-400">Ingresa el código de admin para continuar.</p>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (code.trim() === ADMIN_CODE) {
-              setUnlocked(true);
-              setWrong(false);
-            } else {
-              setWrong(true);
-            }
-          }}
-          className="mt-6 flex gap-2"
-        >
+        <form onSubmit={verifyCode} className="mt-6 flex gap-2">
           <input
             type="password"
             value={code}
@@ -60,8 +71,12 @@ export default function AdminPage() {
             className="w-full soft-ring rounded-xl border border-white/10 bg-white/5 backdrop-blur-md px-3 py-2 outline-none focus:border-rivals-blue"
             autoFocus
           />
-          <button type="submit" className="soft-ring rounded-full bg-rivals-red px-5 py-2 font-bold text-white shadow-[0_4px_16px_rgba(230,57,70,0.35)] transition hover:brightness-110">
-            Entrar
+          <button
+            type="submit"
+            disabled={checking}
+            className="soft-ring rounded-full bg-rivals-red px-5 py-2 font-bold text-white shadow-[0_4px_16px_rgba(230,57,70,0.35)] transition hover:brightness-110 disabled:opacity-50"
+          >
+            {checking ? (lang === "es" ? "Verificando…" : "Checking…") : "Entrar"}
           </button>
         </form>
         {wrong && <p className="mt-3 text-sm text-red-400">Código incorrecto.</p>}
