@@ -75,7 +75,7 @@ const dict: Record<string, Record<Lang, string>> = {
   "how.points": { es: "Victoria = +3 puntos · Empate =  0 puntos · Derrota =  0 puntos.", en: "Win = +3 points · Draw =  0 points · Loss =  0 points." },
   "how.knockout": { es: "Top 2 de cada grupo → Cuartos (Bo5) → Semis (Bo5) → Final (Bo7).", en: "Top 2 per group → Quarterfinals (Bo5) → Semifinals (Bo5) → Final (Bo7)." },
   "how.stats": { es: "Los capitanes envían resultados y el tablero de goles/asistencias/salvadas/tiros. La admin aprueba y el leaderboard se actualiza.", en: "Captains submit results & scoreboards for goals/assists/saves/shots. Admins approve, and the leaderboard updates." },
-  "how.matchday": { es: "Los partidos se juegan el día del torneo a las 7pm, desde grupos hasta la gran final.", en: "Matches play on tournament day at 7pm, group stage straight through to the grand final." },
+  "how.matchday": { es: "Los partidos se juegan el día del torneo, desde grupos hasta la gran final.", en: "Matches play on tournament day, group stage straight through to the grand final." },
   "tournament.groups": { es: "Fase de grupos", en: "Group Stage" },
   "tournament.bracket": { es: "Eliminación directa",en: "Knockout Bracket" },
   "tournament.legend": { es: "W = Victoria, L = Derrota. Puntos: W +3, L 0.", en: "W = Win, L = Loss. Points: W +3, L 0." },
