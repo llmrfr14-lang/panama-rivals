@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
+import type { Match } from "@/lib/types";
 
 export default function AdminPage() {
   const { t, lang } = useI18n();
@@ -264,6 +265,157 @@ export default function AdminPage() {
           >
             ⏳ Aplicar deadlines FF ahora
           </button>
+        </div>
+      </div>
+
+      {/* ── RESULTADOS / CHECK-IN EN VIVO ── */}
+      <div className="mt-10">
+        <h2 className="font-display text-2xl font-bold text-rivals-gold">Resultados · Check-in en vivo</h2>
+        <p className="mt-1 text-xs text-slate-500">
+          Se actualiza solo (realtime Supabase)— quién ya reportó, quién falta por marcar y el estado del check-in del bracket.
+
+        </p>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          {(["challenger", "elite"] as const).map((d) => {
+            const ko = matches.filter((m) => m.groupId === d && m.stage !== "group").sort((a, b) => (a.scheduledAt ?? 0) - (b.scheduledAt ?? 0));
+            const groupMs = matches.filter((m) => m.groupId === d && m.stage === "group");
+            const reported = groupMs.filter((m) => m.status === "approved" || m.status === "ff");
+            const missing = groupMs.filter((m) => m.status === "scheduled");
+            const reviewing = groupMs.filter((m) => m.status === "pending_review");
+            const checks = ko.filter((m) => m.checkedIn);
+            const resolved = (m: Match) => m.status === "approved" || m.status === "ff";
+            const stageLabel = (s: string) => (s === "qf" ? "Cuartos" : s === "sf" ? "Semis" : "Final");
+            const statusLabel = (m: Match) =>
+              m.status === "scheduled" ? "⏳ espera" :
+              m.status === "checked_in" ? "🟡 listo para jugar" :
+              m.status === "pending_review" ? "📤 en revisión" :
+              m.status === "approved" ? "✅ aprobado" : "🏆 FF";
+            return (
+              <div key={d} className="glass-card rounded-3xl p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className={`font-display text-sm font-black uppercase tracking-widest ${d === "elite" ? "text-rivals-gold" : "text-rivals-blue"}`}>
+                    {d === "elite" ? "⚡ Elite" : "🛡️ Challenger"}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 text-[10px] font-bold">
+                    <span className="rounded-full bg-white/5 px-2 py-0.5 text-slate-300">
+                      Grupos: {reported.length}/{groupMs.length} reportados
+                    </span>
+                    <span className="rounded-full bg-white/5 px-2 py-0.5 text-slate-300">
+                      Bracket: {checks.length}/{ko.length} check-in
+                    </span>
+                  </div>
+                </div>
+
+                {groupMs.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                      Grupos — quién falta por reportar
+                    </p>
+                    {missing.length === 0 && reviewing.length === 0 ? (
+                      <p className="mt-1.5 text-xs font-semibold text-emerald-400">
+                        ✓ Todos los resultados de grupo aprobados. 🎉
+                      </p>
+                    ) : (
+                      <ul className="mt-1.5 space-y-1 text-xs">
+                        {[...missing, ...reviewing].map((m) => (
+                          <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/5 bg-white/3 px-2.5 py-1.5">
+                            <span className="font-medium text-slate-200">
+                              {teamById(m.homeTeamId)?.name ?? "?"} <span className="text-slate-500">vs</span>{" "}
+                              {teamById(m.awayTeamId)?.name ?? "?"}
+                            </span>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${
+                                m.status === "scheduled"
+                                  ? "bg-amber-500/15 text-amber-300"
+                                  : "bg-rivals-blue/15 text-rivals-blue"
+                              }`}
+                            >
+                              {m.status === "scheduled" ? "⚠ falta reportar" : "⏳ en revisión"}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+
+                {ko.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                      Bracket — check-in en vivo
+                    </p>
+                    <ul className="mt-1.5 space-y-1.5 text-xs">
+                      {ko.map((m) => {
+                        const done = resolved(m);
+                        const homeDone = done && m.homeScore > m.awayScore || (m.status === "ff" && m.ffWinner === m.homeTeamId);
+                        const awayDone = done && m.awayScore > m.homeScore || (m.status === "ff" && m.ffWinner === m.awayTeamId);
+                        return (
+                          <li key={m.id} className="rounded-xl border border-white/5 bg-white/3 px-2.5 py-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-bold uppercase tracking-widest text-slate-400">
+                                {stageLabel(m.stage)}
+                              </span>
+                              <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                                {statusLabel(m)}
+                              </span>
+                            </div>
+                            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                              <span
+                                className={
+                                  m.homeTeamId === null
+                                    ? "text-slate-600"
+                                    : m.checkedIn === m.homeTeamId
+                                      ? "font-semibold text-emerald-400"
+                                      : homeDone
+                                        ? "font-bold text-rivals-gold"
+                                        : m.status === "approved" || m.status === "pending_review" || m.status === "ff"
+                                          ? "text-slate-400"
+                                          : "font-medium text-amber-300"
+                                }
+                              >
+                                {m.homeTeamId === null
+                                  ? "TBD"
+                                  : `${m.checkedIn === m.homeTeamId ? "✓ " : ""}${teamById(m.homeTeamId)?.name ?? "?"}`}
+                              </span>
+                              <span className="text-slate-600">vs</span>
+                              <span
+                                className={
+                                  m.awayTeamId === null
+                                    ? "text-slate-600"
+                                    : m.checkedIn === m.awayTeamId
+                                      ? "font-semibold text-emerald-400"
+                                      : awayDone
+                                        ? "font-bold text-rivals-gold"
+                                        : m.status === "approved" || m.status === "pending_review" || m.status === "ff"
+                                          ? "text-slate-400"
+                                          : "font-medium text-amber-300"
+                                }
+                              >
+                                {m.awayTeamId === null
+                                  ? "TBD"
+                                  : `${m.checkedIn === m.awayTeamId ? "✓ " : ""}${teamById(m.awayTeamId)?.name ?? "?"}`}
+                              </span>
+                              {(m.status === "scheduled" || m.status === "checked_in") && m.checkedIn === null && (
+                                <span className="hidden text-[10px] font-bold uppercase tracking-widest text-amber-400 sm:inline">
+                                  ninguno marcó
+                                </span>
+                              )}
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+
+                {groupMs.length === 0 && ko.length === 0 && (
+                  <p className="mt-3 text-xs text-slate-500">
+                    Sin partidos aún — aparecen después del sorteo de grupos..
+                  </p>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

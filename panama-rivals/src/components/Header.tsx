@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
+import { useTheme } from "@/lib/theme";
 
 const links = [
   ["nav.home", "/"],
@@ -101,6 +102,7 @@ const icons: Record<string, React.ReactNode> = {
 export default function Header() {
   const { lang, setLang, t } = useI18n();
   const { registrations } = useStore();
+  const { theme, toggleTheme } = useTheme();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [myReg, setMyReg] = useState<{ id: string; teamName: string; status: string } | null>(null);
@@ -214,6 +216,13 @@ export default function Header() {
             aria-label="Switch language"
           >
             {lang === "es" ? "EN" : "ES"}
+          </button>
+          <button
+            onClick={toggleTheme}
+            className="soft-ring ml-1 shrink-0 flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-slate-200 transition hover:bg-white/10 hover:text-rivals-gold"
+            aria-label={theme === "dark" ? "Cambiar al tema claro" : "Cambiar al tema oscuro"}
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
           </button>
           <button
             ref={triggerRef}

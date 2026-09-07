@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { SkipLink } from "@/components/SkipLink";
 import { ScrollProgress } from "@/components/ScrollProgress";
+import { InstallBanner } from "@/components/InstallBanner";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -73,6 +74,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Header />
           <main id="main" className="relative z-10 flex flex-col">{children}</main>
           <Footer />
+          <InstallBanner />
         </Providers>
       </body>
     </html>

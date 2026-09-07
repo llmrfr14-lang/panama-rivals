@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
@@ -31,7 +31,22 @@ export default function Home() {
   const { registrations, matches, teamById } = useStore();
   const heroRef = useRef<HTMLElement | null>(null);
   const [spotOn, setSpotOn] = useState(false);
+  const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
   const teamCount = useCountUp(registrations.length);
+  const STEPS = 3;
+  const next = useCallback(() => setActive((a) => (a + 1) % STEPS), []);
+  const prev = useCallback(() => setActive((a) => (a + STEPS - 1) % STEPS), []);
+  useEffect(() => {
+    if (paused) return;
+    const id = setInterval(() => {
+      if (typeof window === "undefined") return;
+      const narrow = window.matchMedia("(max-width: 767px)").matches;
+      if (!narrow) return;
+      setActive((a) => (a + 1) % STEPS);
+    }, 3500);
+    return () => clearInterval(id);
+  }, [paused]);
 
   // Live Season 2 ranking — top 8 across both divisions (placement points per the official PDF).
   const top8 = useMemo(() => {
@@ -143,18 +158,68 @@ export default function Home() {
 
       <Marquee />
 
-      {/* ── EXPERIENCE ── */}
-      <section className="relative mx-auto max-w-6xl px-4 py-20">
+      {/* ── EXPERIENCE / CÓMO FUNCIONA ── */}
+      <section aria-labelledby="how-it-works" className="relative mx-auto max-w-6xl px-4 py-20">
         <Reveal>
         <p className="text-center text-xs font-black uppercase tracking-[0.35em] text-rivals-gold">{t("exp.kicker")}</p>
-        <h2 className="mx-auto mt-3 max-w-2xl text-center font-display text-3xl font-black leading-tight tracking-tight md:text-5xl">{t("exp.title")}</h2>
+        <h2 id="how-it-works" className="mx-auto mt-3 max-w-2xl text-center font-display text-3xl font-black leading-tight tracking-tight md:text-5xl">{t("exp.title")}</h2>
 
-        <div className="mt-12 grid gap-5 md:grid-cols-3">
+        {/* Auto-advance carousel en móvil — grilla en desktop */}
+        <div className="mt-12 md:grid md:grid-cols-3 md:gap-5">
+          <div className="overflow-hidden rounded-3xl md:hidden">
+            <div
+              className="flex transition-transform duration-500 ease-out"
+              style={{ transform: `translateX(-${active * 100}%)` }}
+              onMouseEnter={() => setPaused(true)}
+              onMouseLeave={() => setPaused(false)}
+            >
+              {(["1", "2", "3"] as const).map((n, i) => (
+                <div key={n} className="w-full shrink-0 px-1">
+                  <div className="glass-card glass-hover h-full rounded-3xl p-7 text-center">
+                    <span className="font-display text-5xl font-black text-rivals-red/60">{n}</span>
+                    <h3 className="mt-3 font-display text-xl font-bold text-rivals-gold">{t(`exp.${n}.title`)}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-300">{t(`exp.${n}.body`)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="mt-4 flex items-center justify-center gap-2 md:hidden">
+            <button
+              type="button"
+              onClick={prev}
+              aria-label={t("how.prev")}
+              className="soft-ring flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-rivals-gold"
+            >
+              ←
+            </button>
+            {(["1", "2", "3"] as const).map((n, i) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setActive(i)}
+                aria-label={`${t("exp.kicker")} ${i + 1}`}
+                aria-current={active === i ? "true" : undefined}
+                className={`h-2 rounded-full transition-all duration-300 ${active === i ? "w-6 bg-rivals-gold" : "w-2 bg-white/20 hover:bg-white/40"}`}
+              />
+            ))}
+            <button
+              type="button"
+              onClick={next}
+              aria-label={t("how.next")}
+              className="soft-ring flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-rivals-gold"
+            >
+              →
+            </button>
+          </div>
+
           {(["1", "2", "3"] as const).map((n, i) => (
-            <Reveal key={n} delay={i * 120} className="glass-card glass-hover rounded-3xl p-7 text-center md:text-left h-full">
-              <span className="font-display text-5xl font-black text-rivals-red/60">{n}</span>
-              <h3 className="mt-3 font-display text-xl font-bold text-rivals-gold">{t(`exp.${n}.title`)}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-300">{t(`exp.${n}.body`)}</p>
+            <Reveal key={n} delay={i * 120} className="hidden md:block">
+              <div className="glass-card glass-hover h-full rounded-3xl p-7 text-center md:text-left">
+                <span className="font-display text-5xl font-black text-rivals-red/60">{n}</span>
+                <h3 className="mt-3 font-display text-xl font-bold text-rivals-gold">{t(`exp.${n}.title`)}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-300">{t(`exp.${n}.body`)}</p>
+              </div>
             </Reveal>
           ))}
         </div>

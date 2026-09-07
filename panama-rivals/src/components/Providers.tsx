@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { StoreProvider } from "@/lib/store";
 import { I18nProvider } from "@/lib/i18n";
+import { ThemeProvider } from "@/lib/theme";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -12,8 +13,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <I18nProvider>
-      <StoreProvider>{children}</StoreProvider>
-    </I18nProvider>
+    <ThemeProvider>
+      <I18nProvider>
+        <StoreProvider>{children}</StoreProvider>
+      </I18nProvider>
+    </ThemeProvider>
   );
 }
