@@ -31,6 +31,13 @@ function MatchCard({ m, teamById, myTeam, now, onCheckIn, innerRef }: {
   const resolved = m.status === "approved" || m.status === "ff";
 
   const checked = m.checkedIn;
+  const [popped, setPopped] = useState<string | null>(null);
+  useEffect(() => {
+    if (!checked) return;
+    setPopped(checked);
+    const td = window.setTimeout(() => setPopped(null), 900);
+    return () => window.clearTimeout(td);
+  }, [checked]);
   const deadline = m.scheduledAt ? m.scheduledAt + CHECK_IN_MS : null;
   const open = Boolean(m.scheduledAt && m.scheduledAt <= now && (m.status === "scheduled" || m.status === "checked_in" || m.status === "declined"));
   const scheduledUpcoming = Boolean(m.scheduledAt && m.scheduledAt > now) && !resolved;
@@ -45,7 +52,7 @@ function MatchCard({ m, teamById, myTeam, now, onCheckIn, innerRef }: {
   return (
     <div
       ref={innerRef ? (el) => innerRef(el) : undefined}
-      className={`rounded-lg border p-3 ${isMine ? "border-rivals-gold/60 bg-rivals-gold/5" : "border-rivals-border/60 bg-rivals-bg/60"}`}
+      className={`rounded-lg border p-3 ${isMine ? "border-rivals-gold/60 bg-rivals-gold/5" : "border-rivals-border/60 bg-rivals-bg/60"} ${popped ? "checkin-ring" : ""}`}
     >
       <div className="flex items-center justify-between gap-2">
         <p className="min-w-0 flex-1 truncate text-sm">
@@ -75,7 +82,7 @@ function MatchCard({ m, teamById, myTeam, now, onCheckIn, innerRef }: {
                       key={tid}
                       onClick={() => onCheckIn(m.id, tid)}
                       disabled={checked === tid || m.status === "ff"}
-                      className={`flex-1 truncate rounded-full px-3 py-1.5 text-xs font-bold transition ${checked === tid ? "bg-emerald-500/90 text-white" : "bg-rivals-blue text-white hover:brightness-110"}`}
+                      className={`flex-1 truncate rounded-full px-3 py-1.5 text-xs font-bold transition ${checked === tid ? (popped === tid ? "bg-emerald-500/90 text-white checkin-pop" : "bg-emerald-500/90 text-white") : "bg-rivals-blue text-white hover:brightness-110"}`}
                     >
                       {checked === tid ? "✓ " + (teamById(tid)?.name ?? "Team") + " listo" : "✓ " + (teamById(tid)?.name ?? "Team")}
                     </button>

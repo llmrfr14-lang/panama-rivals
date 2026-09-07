@@ -16,6 +16,7 @@ const dict: Record<string, Record<Lang, string>> = {
   "nav.s1": { es: "Temporada 1", en: "Season 1" },
   "nav.admin": { es: "Admin", en: "Admin" },
   "nav.bracket": { es: "Bracket", en: "Bracket" },
+  "nav.backToTop": { es: "Volver arriba", en: "Back to top" },
   "bracket.sub": { es: "Eliminación directa en vivo: cuartos, semis y final. Selecciona tu equipo para ver tu próximo partido y hacer check-in.", en: "Live knockout bracket: quarterfinals, semis and the final. Pick your team to see your next match and check in." },
   "bracket.myTeam": { es: "Mi equipo…", en: "My team…" },
   "bracket.nextUp": { es: "Tu próximo partido", en: "Your next match" },

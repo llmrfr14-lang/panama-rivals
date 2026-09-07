@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { useI18n } from "@/lib/i18n";
 import { leaderboard } from "@/lib/league";
@@ -7,15 +8,30 @@ import { leaderboard } from "@/lib/league";
 export default function StatsPage() {
   const { t } = useI18n();
   const { matches, registrations, teamById } = useStore();
+  const [div, setDiv] = useState<"challenger" | "elite">("challenger");
   const ch = leaderboard("challenger", matches, registrations).slice(0, 10);
   const el = leaderboard("elite", matches, registrations).slice(0, 10);
+  const rows = div === "challenger" ? ch : el;
+  const title = div === "challenger" ? "Challenger · ≤ Champion 2" : "Elite · Champion 3+";
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-16">
       <h1 className="font-display text-4xl font-black">Leaderboard</h1>
       <p className="mt-2 text-slate-400">{t("stats.leaderboardSub")}</p>
 
-      {(ch.length === 0 && el.length === 0) && (
+      <div className="mt-6 inline-flex rounded-full border border-white/10 bg-white/5 p-1 backdrop-blur">
+        {(["challenger", "elite"] as const).map((d) => (
+          <button
+            key={d}
+            onClick={() => setDiv(d)}
+            className={`rounded-full px-5 py-1.5 text-sm font-bold transition ${div === d ? "bg-rivals-red text-white shadow-[0_2px_12px_rgba(230,57,70,0.4)]" : "text-slate-400 hover:text-white"}`}
+          >
+            {d === "challenger" ? "🛡️ Challenger" : "⚡ Elite"}
+          </button>
+        ))}
+      </div>
+
+      {(ch.length === 0 && el.length === 0) ? (
         <div className="mt-8 mx-auto max-w-md glass-card glass-dashed rounded-3xl p-10 text-center">
           <span className="emoji text-4xl">📈</span>
           <p className="mt-4 font-display text-xl font-bold text-rivals-gold">{t("stats.emptyTitle")}</p>
@@ -23,13 +39,12 @@ export default function StatsPage() {
             {t("stats.emptyBody")}
           </p>
         </div>
+      ) : (
+        <>
+          <StatRadars rows={rows} teamById={teamById} />
+          <StatsTable title={title} rows={rows} teamById={teamById} />
+        </>
       )}
-
-      <StatRadars rows={ch} teamById={teamById} />
-      <StatsTable title="Challenger · ≤ Champion 2" rows={ch} teamById={teamById} />
-
-      <StatRadars rows={el} teamById={teamById} />
-      <StatsTable title="Elite · Champion 3+" rows={el} teamById={teamById} />
     </div>
   );
 }
@@ -50,12 +65,12 @@ function StatRadars({ rows, teamById }: { rows: { playerId: string; teamId: stri
   ) as Record<string, number>;
 
   return (
-    <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-4">
+    <div className="-mx-4 mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-4 md:overflow-visible md:px-0 md:pb-0">
       {stats.map((s) => {
         const lead = rows.reduce((best, r) => (r[s.key] > (best?.[s.key] ?? -1) ? r : best), null as (typeof rows[number]) | null);
         const pct = totals[s.key] > 0 ? Math.round((lead?.[s.key] ?? 0) / totals[s.key] * 100) : 0;
         return (
-          <div key={s.key} className="glass-card rounded-3xl p-5 text-center">
+          <div key={s.key} className="snap-center glass-card shrink-0 rounded-3xl p-5 text-center md:shrink">
             <div
               className="relative mx-auto h-20 w-20 rounded-full"
               style={{

@@ -4,6 +4,8 @@ import "./globals.css";
 import Providers from "@/components/Providers";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { SkipLink } from "@/components/SkipLink";
+import { ScrollProgress } from "@/components/ScrollProgress";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -61,13 +63,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-screen">
+        <SkipLink />
         {/* Fixed ambient backdrop — glass atmosphere only */}
         <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0">
           <div className="rivals-aura absolute inset-0" />
         </div>
         <Providers>
+          <ScrollProgress />
           <Header />
-          <main className="relative z-10 flex flex-col">{children}</main>
+          <main id="main" className="relative z-10 flex flex-col">{children}</main>
           <Footer />
         </Providers>
       </body>
