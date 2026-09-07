@@ -50,8 +50,8 @@ const rules: Rule[] = [
         en: "When two teams tie on points, the head-to-head winner advances.",
       },
       {
-        es: "Con 2 grupos, la siguiente ronda es la final. Con más de 2 grupos, se juegan eliminatorias hasta que queden dos y se hace la final. Cuartos Bo3 · Semis Bo3 · Gran Final Bo5.",
-        en: "With 2 groups,the next round is the final. With more than 2 groups, knockouts run until two remain, then the final. Quarterfinals Bo3 · Semifinals Bo3 · Grand Final Bo5.",
+        es: "Con 2 grupos, la siguiente ronda es la final. Con más de 2 grupos, se juegan eliminatorias hasta que queden dos y se hace la final. Cuartos Bo5 · Semis Bo5 · Gran Final Bo7.",
+        en: "With 2 groups,the next round is the final. With more than 2 groups, knockouts run until two remain, then the final. Quarterfinals Bo5 · Semifinals Bo5 · Grand Final Bo7.",
       },
     ],
   },
