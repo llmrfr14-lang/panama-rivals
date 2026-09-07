@@ -5,27 +5,12 @@ import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { placementFor, type Division } from "@/lib/league";
+import type { Match, Stage } from "@/lib/types";
 import { SocialIcons } from "@/components/SocialIcons";
 import Reveal from "@/components/Reveal";
 import { Marquee } from "@/components/Marquee";
+import { useCountUp } from "@/lib/useCountUp";
 
-function useCountUp(target: number, durationMs = 700) {
-  const [value, setValue] = useState(0);
-  const rafRef = useRef<number>(0);
-  useEffect(() => {
-    const start = performance.now();
-    const from = 0;
-    const step = (now: number) => {
-      const p = Math.min(1, (now - start) / durationMs);
-      const eased = 1 - Math.pow(1 - p, 3);
-      setValue(Math.round(from + (target - from) * eased));
-      if (p < 1) rafRef.current = requestAnimationFrame(step);
-    };
-    rafRef.current = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(rafRef.current ?? 0);
-  }, [target, durationMs]);
-  return value;
-}
 const features = [
   { icon: "🗺️", key: "groups" },
   { icon: "🔥", key: "points" },
@@ -43,7 +28,7 @@ const stats = [
 
 export default function Home() {
   const { t, lang } = useI18n();
-  const { registrations, matches } = useStore();
+  const { registrations, matches, teamById } = useStore();
   const heroRef = useRef<HTMLElement | null>(null);
   const [spotOn, setSpotOn] = useState(false);
   const teamCount = useCountUp(registrations.length);
@@ -57,6 +42,14 @@ export default function Home() {
       .sort((a, b) => b.points - a.points || a.label.localeCompare(b.label))
       .slice(0, 8);
   }, [matches, registrations]);
+
+  const upcoming = useMemo(() =>
+    matches
+      .filter((m) => m.status === "scheduled" && typeof m.scheduledAt === "number")
+      .sort((a, b) => (a.scheduledAt ?? 0) - (b.scheduledAt ?? 0))
+      .slice(0, 6),
+    [matches]
+  );
 
   // Cursor spotlight: a soft gold glow follows the mouse inside the hero
   useEffect(() => {
@@ -198,13 +191,43 @@ export default function Home() {
           <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
             {stats.map((s, i) => (
               <Reveal key={s.key} delay={i * 100} className="glass-card rounded-3xl p-6 text-center">
-                <p className="font-display text-4xl font-black text-rivals-gold md:text-5xl">{s.value}</p>
+                <p className="font-display text-4xl font-black text-rivals-gold md:text-5xl">
+                  <StatNumber value={s.value} />
+                </p>
                 <p className="mt-1 text-xs uppercase tracking-widest text-slate-400">{t(s.key)}</p>
               </Reveal>
             ))}
           </div>
         </Reveal>
       </section>
+
+      {upcoming.length > 0 && (
+        <section className="relative mx-auto max-w-6xl px-4 pb-20">
+          <Reveal>
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.35em] text-rivals-gold">
+                  {lang === "en" ? "Matchday" : "Jornada"}
+                </p>
+                <h2 className="mt-2 font-display text-2xl font-black">
+                  {lang === "en" ? "Upcoming knockouts" : "Eliminatorias en vivo"}
+                </h2>
+              </div>
+              <Link
+                href="/bracket"
+                className="soft-ring shrink-0 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-slate-200 transition hover:bg-white/10 hover:text-rivals-gold"
+              >
+                {t("bracket.ranking")} →
+              </Link>
+            </div>
+            <div className="-mx-4 mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 md:pb-0">
+              {upcoming.map((m) => (
+                <MatchCard key={m.id} m={m} teamById={teamById} lang={lang} />
+              ))}
+            </div>
+          </Reveal>
+        </section>
+      )}
 
       {top8.length > 0 && (
         <Reveal className="relative mx-auto max-w-6xl px-4 pb-20">
@@ -269,6 +292,67 @@ export default function Home() {
           </div>
         </Reveal>
       )}
+    </div>
+  );
+}
+
+function StatNumber({ value }: { value: string }) {
+  const m = value.match(/^(\d+)(\+?)$/);
+  if (!m) return <>{value}</>;
+  const num = Number(m[1]);
+  const suffix = m[2] ?? "";
+  const n = useCountUp(num, 900);
+  return (
+    <>{n}{suffix}</>
+  );
+}
+
+const STAGE_LABELS: Record<Stage, { es: string; en: string }> = {
+  group: { es: "Grupos", en: "Groups" },
+  qf: { es: "Cuartos", en: "Quarterfinals" },
+  sf: { es: "Semifinales", en: "Semifinals" },
+  f: { es: "Final", en: "Final" },
+};
+
+function MatchCard({ m, teamById, lang }: { m: Match; teamById: (id: string | null) => { name: string } | null; lang: string }) {
+  const home = teamById(m.homeTeamId);
+  const away = teamById(m.awayTeamId);
+  const when = new Date(m.scheduledAt ?? 0);
+  const isToday = when.toDateString() === new Date().toDateString();
+  const isTomorrow = when.toDateString() === new Date(Date.now() + 86400000).toDateString();
+  const dayLabel = isToday
+    ? (lang === "en" ? "Today" : "Hoy")
+    : isTomorrow
+      ? (lang === "en" ? "Tomorrow" : "Mañana")
+      : when.toLocaleDateString(lang === "en" ? "en-US" : "es-PA", { day: "numeric", month: "short" });
+  const stageLabel = STAGE_LABELS[m.stage][lang === "en" ? "en" : "es"];
+  const time = when.toLocaleTimeString(lang === "en" ? "en-US" : "es-PA", { hour: "2-digit", minute: "2-digit" });
+
+  return (
+    <div className="snap-center shrink-0 overflow-hidden rounded-3xl border border-rivals-border/60 bg-white/[0.03] p-5 backdrop-blur-md transition duration-300 hover:-translate-y-1 hover:bg-white/[0.06] hover:border-rivals-gold/40 md:shrink">
+      <div className="flex items-center justify-between gap-2">
+        <span className="rounded-full bg-rivals-red/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-rivals-red">
+          {stageLabel}
+        </span>
+        <span className={isToday ? "rounded-full bg-emerald-500/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-400" : "rounded-full bg-white/5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-400"}>
+          {dayLabel}
+        </span>
+      </div>
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1 truncate text-center">
+          <p className="truncate font-display text-lg font-bold text-white">{home?.name ?? "—"}</p>
+        </div>
+        <div className="flex flex-col items-center px-1">
+          <span className="font-display text-xl font-black text-rivals-gold">VS</span>
+          <span className="mt-1 text-[11px] font-medium text-slate-500">{time}</span>
+        </div>
+        <div className="min-w-0 flex-1 truncate text-center">
+          <p className="truncate font-display text-lg font-bold text-white">{away?.name ?? "—"}</p>
+        </div>
+      </div>
+      <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-white/10">
+        <div className="h-full w-0 rounded-full bg-gradient-to-r from-rivals-blue to-rivals-gold" />
+      </div>
     </div>
   );
 }

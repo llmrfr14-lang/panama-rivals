@@ -63,28 +63,41 @@ export default function SeasonOnePage() {
       <h2 className="mt-16 font-display text-2xl font-black tracking-tight text-rivals-gold">{t("s1.bracket")}</h2>
       <div className="mt-6 grid gap-6 md:grid-cols-3">
         {([
-          [t("s1.qf"), qf],
-          [t("s1.sf"), sf],
-          [t("s1.final"), fin],
-        ] as [string, typeof qf][]).map(([label, matches]) => (
-          <div key={label} className="glass-card rounded-3xl p-5">
-            <h3 className="font-display text-base font-black text-rivals-red">{label}</h3>
-            <div className="mt-4 space-y-3">
-              {matches.map((m) => (
-                <div key={`${m.round}-${m.home}`} className="rounded-lg border border-rivals-border/60 bg-rivals-bg/50 p-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className={m.winner === m.home ? "font-bold text-emerald-300" : "text-slate-300"}>{m.home}</span>
-                    <span className="font-mono font-bold">{m.hs}</span>
+          ["QF", "⚔️", t("s1.qf"), qf],
+          ["SF", "🔥", t("s1.sf"), sf],
+          ["F", "🏆", t("s1.final"), fin],
+        ] as [string, string, string, typeof qf][]).map(([tag, icon, label, matches]) => {
+          const isFinal = tag === "F";
+          return (
+            <div key={label} className={`glass-card rounded-3xl p-5 ${isFinal ? "border-rivals-gold/40 shadow-[0_0_40px_rgba(251,191,36,0.08)]" : ""}`}>
+              <h3 className={`flex items-center gap-2 font-display text-base font-black ${isFinal ? "text-rivals-gold" : "text-rivals-red"}`}>
+                <span className="rounded-md bg-white/5 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-widest text-slate-400">{tag}</span>
+                <span>{icon}</span>
+                {label}
+              </h3>
+              <div className="mt-4 space-y-3">
+                {matches.map((m) => (
+                  <div key={`${m.round}-${m.home}`} className="rounded-lg border border-rivals-border/60 bg-rivals-bg/50 p-3 text-sm">
+                    <div className="flex justify-between gap-2">
+                      <span className={`flex items-center gap-1.5 truncate ${m.winner === m.home ? "font-bold text-emerald-300" : "text-slate-300"}`}>
+                        {m.winner === m.home && <span aria-hidden="true">🏆</span>}
+                        <span className="truncate">{m.home}</span>
+                      </span>
+                      <span className="font-mono font-bold">{m.hs}</span>
+                    </div>
+                    <div className="mt-1 flex justify-between gap-2">
+                      <span className={`flex items-center gap-1.5 truncate ${m.winner === m.away ? "font-bold text-emerald-300" : "text-slate-400"}`}>
+                        {m.winner === m.away && <span aria-hidden="true">🏆</span>}
+                        <span className="truncate">{m.away}</span>
+                      </span>
+                      <span className="font-mono font-bold text-slate-400">{m.as}</span>
+                    </div>
                   </div>
-                  <div className="mt-1 flex justify-between">
-                    <span className={m.winner === m.away ? "font-bold text-emerald-300" : "text-slate-400"}>{m.away}</span>
-                    <span className="font-mono font-bold text-slate-400">{m.as}</span>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <h2 className="mt-16 font-display text-2xl font-black tracking-tight text-rivals-gold">{t("s1.leaders")}</h2>
