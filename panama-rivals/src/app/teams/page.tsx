@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { Division } from "@/lib/league";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 const groupKeys = ["A", "B", "C", "D"];
 
@@ -28,6 +29,7 @@ export default function TeamsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-16">
+      <Breadcrumbs items={[{ label: lang === "en" ? "Teams" : "Equipos" }]} lang={lang} />
       <h1 className="font-display text-4xl font-black">{lang === "en" ? "Teams" : "Equipos"}</h1>
       <p className="mt-2 text-slate-400">
         {lang === "en" ? `${registrations.length} teams registered` : `${registrations.length} equipos registrados`}
@@ -78,6 +80,12 @@ export default function TeamsPage() {
             <p className="mt-3 font-display text-lg font-bold text-slate-300">
               {lang === "en" ? "No teams match your search." : "Ningún equipo coincide con tu búsqueda."}
             </p>
+            <button
+              onClick={() => setQuery("")}
+              className="soft-ring mt-5 rounded-full bg-rivals-red px-4 py-2 text-xs font-bold text-white transition hover:brightness-110"
+            >
+              {lang === "en" ? "✕ Clear search" : "✕ Limpiar búsqueda"}
+            </button>
           </div>
         ) : (
           <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">

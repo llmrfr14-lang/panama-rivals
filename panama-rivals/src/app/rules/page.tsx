@@ -1,6 +1,7 @@
 "use client";
 
 import { useI18n } from "@/lib/i18n";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 type Rule = { title: { es: string; en: string }; body: { es: string; en: string }[] };
 
@@ -113,6 +114,7 @@ export default function RulesPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-16">
+      <Breadcrumbs items={[{ label: lang === "en" ? "Rules" : "Reglas" }]} lang={lang} />
       <h1 className="font-display text-4xl font-black">
         {lang === "en" ? "Rules" : "Reglas"}
       </h1>

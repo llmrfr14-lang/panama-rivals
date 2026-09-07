@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import type { Match } from "@/lib/types";
+import type { Division } from "@/lib/league";
 
 export default function AdminPage() {
   const { t, lang } = useI18n();
@@ -27,6 +29,12 @@ export default function AdminPage() {
   const pending = submissions.filter((s) => s.status === "pending");
   const processed = submissions.filter((s) => s.status !== "pending");
   const groupMatches = matches.filter((m) => m.stage === "group");
+  const unassigned: Record<Division, number> = { challenger: 0, elite: 0 };
+  const anyRegistrations = registrations.length > 0;
+  for (const r of registrations) {
+    if (!r.groupId) unassigned[(r.division ?? "challenger") as Division]++;
+  }
+  
   const [startAt, setStartAt] = useState("");
   const [code, setCode] = useState("");
   const [unlocked, setUnlocked] = useState(false);
@@ -222,7 +230,30 @@ export default function AdminPage() {
           </div>
         ))}
         {registrations.length === 0 && (
-          <p className="text-slate-500">Sin registros aún — comparte el link de Registro en Discord.</p>
+          <div className="mt-4 rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-6 text-center">
+            <p className="emoji text-3xl">📢</p>
+            <p className="mt-2 font-semibold text-white">Sin equipos registrados todavía</p>
+            <p className="mt-1 text-sm text-slate-400">
+              Compartí el link de registro en Discord para arrancar la temporada.
+
+            </p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <Link
+                href="/register"
+                className="soft-ring rounded-full bg-rivals-red px-4 py-2 text-xs font-bold text-white transition hover:brightness-110"
+              >
+                ➕ Abrir registro
+              </Link>
+              <a
+                href="https://discord.gg/panamarivals"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="soft-ring rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-bold text-slate-200 transition hover:bg-white/10"
+              >
+                💬 Compartir en Discord
+              </a>
+            </div>
+          </div>
         )}
       </div>
 
@@ -409,9 +440,30 @@ export default function AdminPage() {
                 )}
 
                 {groupMs.length === 0 && ko.length === 0 && (
-                  <p className="mt-3 text-xs text-slate-500">
-                    Sin partidos aún — aparecen después del sorteo de grupos..
-                  </p>
+                  <div className="mt-3 rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-5 text-center">
+                    <p className="emoji text-2xl">🗂️</p>
+                    <p className="mt-1.5 text-xs font-semibold text-white">
+                      Sin partidos aún en {d === "challenger" ? "Challenger" : "Elite"}
+                    </p>
+                    <p className="mt-1 text-[11px] text-slate-400">
+                      Aparecen después del sorteo de grupos.{" "}
+                      {unassigned[d] > 0 && (
+                        <>
+                          — hay <b className="text-rivals-gold">{unassigned[d]}</b>{" "}
+                          {lang === "en" ? "team(s) sin grupo" : "equipo(s) sin grupo"}.{" "}
+                          Asignales grupo en la lista de arriba.
+                        </>
+                      )}
+                    </p>
+                    {anyRegistrations && (
+                      <button
+                        onClick={generateSchedule}
+                        className="mt-3 soft-ring rounded-full bg-rivals-red px-4 py-2 text-xs font-bold text-white transition hover:brightness-110"
+                      >
+                        {lang === "en" ? "📅 Generate group schedule now" : "📅 Generar calendario de grupos ahora"}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             );

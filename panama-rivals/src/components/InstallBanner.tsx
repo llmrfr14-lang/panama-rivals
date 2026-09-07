@@ -28,6 +28,12 @@ export function InstallBanner() {
   const [deferred, setDeferred] = useState<DeferredPrompt | null>(null);
   const [hidden, setHidden] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [showHowTo, setShowHowTo] = useState(false);
+  const isIOS =
+    typeof navigator !== "undefined" &&
+    typeof window !== "undefined" &&
+    /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+    !window.matchMedia("(display-mode: standalone)").matches;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -50,7 +56,7 @@ export function InstallBanner() {
     };
   }, []);
 
-  if (hidden || dismissed || !deferred) return null;
+  if (hidden || dismissed || (!deferred && !isIOS)) return null;
 
   const en = lang === "en";
 
@@ -86,7 +92,7 @@ export function InstallBanner() {
           <div className="mt-2.5 flex gap-2">
             <button
               type="button"
-              onClick={install}
+              onClick={() => (deferred ? install() : setShowHowTo(true))}
               className="soft-ring rounded-full bg-rivals-red px-4 py-1.5 text-xs font-bold text-white shadow-[0_4px_12px_rgba(230,57,70,0.35)] transition hover:brightness-110"
             >
               {en ? "Install app" : "Instalá la app"} 📲
@@ -101,6 +107,15 @@ export function InstallBanner() {
           </div>
         </div>
       </div>
+      {showHowTo && (
+        <div className="mt-3 border-t border-white/10 pt-3 text-xs text-slate-300" role="dialog" aria-label={en ? "How to install" : "Cómo instalar"}>
+          <p className="font-bold text-white">{en ? "On your phone:" : "En tu teléfono:"}</p>
+          <ol className="mt-2 list-decimal space-y-1.5 pl-4">
+            <li>{en ? "Tap the " : "Tocá el "}<span className="font-bold text-slate-100">Share</span>{en ? " button in Safari." : " en Safari."}</li>
+            <li>{en ? "Scroll and tap " : "Deslizá y tocá "}<span className="font-bold text-slate-100">{en ? "Add to Home Screen" : "Agregar a pantalla de inicio"}</span>.</li>
+          </ol>
+        </div>
+      )}
     </div>
   );
 }

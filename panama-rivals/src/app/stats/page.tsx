@@ -4,9 +4,10 @@ import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { useI18n } from "@/lib/i18n";
 import { leaderboard } from "@/lib/league";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 export default function StatsPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { matches, registrations, teamById } = useStore();
   const [div, setDiv] = useState<"challenger" | "elite">("challenger");
   const ch = leaderboard("challenger", matches, registrations).slice(0, 10);
@@ -16,6 +17,7 @@ export default function StatsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-16">
+      <Breadcrumbs items={[{ label: lang === "en" ? "Leaderboard" : "Ranking" }]} lang={lang} />
       <h1 className="font-display text-4xl font-black">Leaderboard</h1>
       <p className="mt-2 text-slate-400">{t("stats.leaderboardSub")}</p>
 

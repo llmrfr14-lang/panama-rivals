@@ -7,12 +7,13 @@ import { placementFor, Division } from "@/lib/league";
 import { useI18n } from "@/lib/i18n";
 import { BracketTree } from "@/components/BracketTree";
 import { BracketSkeleton } from "@/components/Skeleton";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 const myTeamKey = "pr-my-team";
 const divKey = "pr-div";
 
 export default function BracketPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { matches, teamById, registrations, checkInTeam, hydrated } = useStore();
   const [div, setDiv] = useState<Division>(() => {
     if (typeof window === "undefined") return "challenger";
@@ -74,6 +75,7 @@ export default function BracketPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-16">
+      <Breadcrumbs items={[{ label: t("nav.bracket") }]} lang={lang} />
       <h1 className="font-display text-4xl font-black">{t("nav.bracket")}</h1>
       <p className="mt-2 max-w-2xl text-slate-400">{t("bracket.sub")}</p>
 
@@ -138,12 +140,22 @@ export default function BracketPage() {
         </div>
       ) : (
         <div className="fade-slide mt-10 rounded-2xl border border-white/10 bg-white/5 p-10 text-center">
+
           <p className="emoji text-4xl">🏆</p>
           <p className="mt-3 font-semibold text-white">{t("bracket.emptyTitle")}</p>
-          <p className="mt-1 text-sm text-slate-400">{t("bracket.emptyBody")}</p>
+          <p className="mx-auto mt-1 max-w-md text-sm text-slate-400">{t("bracket.emptyBody")}</p>
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <Link href="/register" className="soft-ring rounded-full bg-rivals-red px-4 py-2 text-xs font-bold text-white transition hover:brightness-110">
+              {t("nav.register")} →
+            </Link>
+            {ranking.length === 0 && (
+              <Link href="/tournament" className="soft-ring rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-bold text-slate-200 transition hover:bg-white/10">
+                {lang === "es" ? "Ver fase de grupos" : "View group stage"} →
+              </Link>
+            )}
+          </div>
         </div>
       )}
-
       {ranking.length > 0 && (
         <div className="mt-14">
           <h2 className="font-display text-3xl font-black text-rivals-gold">{t("bracket.ranking")}</h2>

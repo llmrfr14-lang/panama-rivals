@@ -67,6 +67,29 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap"
         />
+      <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SportsEvent",
+              name: title,
+              description,
+              sport: "Rocket League (esports)",
+              location: {
+                "@type": "Place",
+                name: "Panamá (online)",
+                address: { "@type": "PostalAddress", addressCountry: "PA" },
+              },
+              eventAttendanceMode: "https://schema.org/OnlineEventAttendanceMode",
+              organiser: {
+                "@type": "Organization",
+                name: "Panamá Rivals",
+                url: "https://panamarivals.com",
+              },
+            }),
+          }}
+        />
       </head>
       <body className="min-h-screen">
         <SkipLink />

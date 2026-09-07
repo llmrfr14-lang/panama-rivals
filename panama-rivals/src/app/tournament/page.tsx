@@ -4,15 +4,17 @@ import Link from "next/link";
 import DivisionView from "@/components/DivisionView";
 import { useStore } from "@/lib/store";
 import { useI18n } from "@/lib/i18n";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 export default function TournamentPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { registrations } = useStore();
   const challenger = registrations.filter((r) => r.division === "challenger" || !r.division);
   const elite = registrations.filter((r) => r.division === "elite");
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-16">
+      <Breadcrumbs items={[{ label: t("tournament.groups") }]} lang={lang} />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-4xl font-black">{t("tournament.groups")}</h1>

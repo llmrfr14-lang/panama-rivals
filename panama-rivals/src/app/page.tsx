@@ -28,7 +28,13 @@ const stats = [
 
 export default function Home() {
   const { t, lang } = useI18n();
-  const { registrations, matches, teamById } = useStore();
+  const { registrations, matches, teamById, checkInTeam } = useStore();
+  const [myTeamId, setMyTeamId] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = localStorage.getItem("rivals_team_id");
+    setMyTeamId(saved && registrations.some((r) => r.id === saved) ? saved : null);
+  }, [registrations]);
   const heroRef = useRef<HTMLElement | null>(null);
   const [spotOn, setSpotOn] = useState(false);
   const [active, setActive] = useState(0);
@@ -287,7 +293,7 @@ export default function Home() {
             </div>
             <div className="-mx-4 mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 md:pb-0">
               {upcoming.map((m) => (
-                <MatchCard key={m.id} m={m} teamById={teamById} lang={lang} />
+                <MatchCard key={m.id} m={m} teamById={teamById} lang={lang} myTeamId={myTeamId} onCheckIn={checkInTeam} />
               ))}
             </div>
           </Reveal>
@@ -314,8 +320,9 @@ export default function Home() {
                   const rec = registrations.find((x) => x.id === r.teamId);
                   const g = rec?.groupId?.split("-")[1] ?? "";
                   const gLabel = g ? `${r.div === "elite" ? "Elite" : "Challenger"} · Grupo ${g.toUpperCase()}` : (r.div === "elite" ? "⚡ Elite" : "🛡️ Challenger");
+                  const isMe = myTeamId !== null && r.teamId === myTeamId;
                   return (
-                    <tr key={`${r.div}-${r.teamId}`} className="group relative border-t border-rivals-border/50 transition hover:bg-white/5">
+                    <tr key={`${r.div}-${r.teamId}`} className={`group relative border-t border-rivals-border/50 transition hover:bg-white/5 ${isMe ? "bg-rivals-gold/[0.06] outline outline-1 outline-rivals-gold/30" : ""}`}>
                       <td className="px-4 py-3 text-slate-400">
                         <span className="inline-flex items-center gap-2">
                           {i === 0 && <span className="text-base">🥇</span>}
@@ -327,6 +334,11 @@ export default function Home() {
                       <td className="relative px-4 py-3 font-semibold">
                         <span className="inline-flex items-center gap-2">
                           {rec?.teamName ?? r.teamId}
+                          {isMe && (
+                            <span className="rounded-full bg-rivals-gold/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-rivals-gold">
+                              {lang === "en" ? "You" : "Tú"}
+                            </span>
+                          )}
                           <span
                             className={
                               r.div === "elite"
@@ -350,7 +362,20 @@ export default function Home() {
               </tbody>
             </table>
           </div>
-          <div className="mt-8 text-center">
+          {myTeamId && !top8.some((r) => r.teamId === myTeamId) && (
+          <Link
+            href="/bracket"
+            className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-rivals-gold/30 bg-rivals-gold/[0.06] px-5 py-4 transition hover:bg-rivals-gold/[0.1]"
+          >
+            <span className="text-sm font-bold text-rivals-gold">
+              {lang === "en" ? "📍 Your ranking lives here" : "📍 Tu ranking vive acá"}
+            </span>
+            <span className="text-xs text-slate-300">
+              {lang === "en" ? "Open full ranking →" : "Abrir ranking completo →"}
+            </span>
+          </Link>
+        )}
+        <div className="mt-8 text-center">
             <Link href="/bracket" className="soft-ring inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 py-3 text-sm font-bold text-slate-200 transition hover:bg-white/10 hover:text-rivals-gold">
               {t("bracket.ranking")} completo →
             </Link>
@@ -379,7 +404,7 @@ const STAGE_LABELS: Record<Stage, { es: string; en: string }> = {
   f: { es: "Final", en: "Final" },
 };
 
-function MatchCard({ m, teamById, lang }: { m: Match; teamById: (id: string | null) => { name: string } | null; lang: string }) {
+function MatchCard({ m, teamById, lang, myTeamId, onCheckIn }: { m: Match; teamById: (id: string | null) => { name: string } | null; lang: string; myTeamId: string | null; onCheckIn: (matchId: string, teamId: string) => void }) {
   const home = teamById(m.homeTeamId);
   const away = teamById(m.awayTeamId);
   const when = new Date(m.scheduledAt ?? 0);
@@ -418,6 +443,28 @@ function MatchCard({ m, teamById, lang }: { m: Match; teamById: (id: string | nu
       <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-white/10">
         <div className="h-full w-0 rounded-full bg-gradient-to-r from-rivals-blue to-rivals-gold" />
       </div>
+      {myTeamId && (m.homeTeamId === myTeamId || m.awayTeamId === myTeamId) && (
+        <div className="mt-3 flex gap-2">
+          {m.status === "approved" && (
+            <Link
+              href={`/report/${encodeURIComponent(m.id)}`}
+              className="soft-ring flex-1 rounded-full bg-gradient-to-r from-rivals-red to-rivals-gold px-3 py-1.5 text-center text-xs font-bold text-white transition hover:brightness-110"
+            >
+              {lang === "en" ? "Report result" : "Reportar resultado"}
+            </Link>
+          )}
+          {(m.status === "scheduled" || m.status === "checked_in") && m.checkedIn !== myTeamId && (
+            <button
+              onClick={() => onCheckIn(m.id, myTeamId)}
+              className="soft-ring flex-1 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-300 transition hover:bg-emerald-500/20"
+            >
+              {m.checkedIn === m.homeTeamId || m.checkedIn === m.awayTeamId
+                ? (lang === "en" ? "Check in now!" : "¡Check-in ahora!")
+                : (lang === "en" ? "Check in" : "Check-in")}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { divisionForRank } from "@/lib/league";
 import { useStore, type PlayerInfo } from "@/lib/store";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 type CaptainForm = { discord: string; epicId: string; phone: string };
 type PlayerForm = { discord: string; epicId: string; phone: string; nationality: string; peakRank: string };
@@ -134,6 +135,7 @@ export default function RegisterPage() {
 
   return (
     <div className="mx-auto max-w-xl px-4 py-16">
+      <Breadcrumbs items={[{ label: en ? "Register" : "Registro" }]} lang={lang} />
       <h1 className="font-display text-4xl font-black">{en ? "Register" : "Registro"}</h1>
       {!supabaseConfigured && (
         <p className="mt-4 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-300">
