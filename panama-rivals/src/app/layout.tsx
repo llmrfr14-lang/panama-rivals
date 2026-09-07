@@ -50,6 +50,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" className={`dark ${outfit.variable} ${inter.variable}`}>
       <head>
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="apple-touch-icon" href="/logo.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="PR Rivals" />
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap"

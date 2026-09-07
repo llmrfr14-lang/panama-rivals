@@ -136,13 +136,29 @@ export default function BracketPage() {
                 </tr>
               </thead>
               <tbody>
-                {ranking.map((r) => (
-                  <tr key={r.teamId} className="border-t border-rivals-border/50">
-                    <td className="px-4 py-3 text-slate-400">{r.label}</td>
-                    <td className="px-4 py-3 font-semibold">{teamById(r.teamId)?.name ?? r.teamId}</td>
-                    <td className="px-4 py-3 text-right font-bold text-rivals-gold">{r.points}</td>
-                  </tr>
-                ))}
+                {ranking.map((r) => {
+                  const rec = registrations.find((x) => x.id === r.teamId);
+                  const g = rec?.groupId?.split("-")[1] ?? "";
+                  const dLabel = div === "elite" ? "⚡ Elite" : "🛡️ Challenger";
+                  return (
+                    <tr key={r.teamId} className="group relative border-t border-rivals-border/50 transition hover:bg-white/5">
+                      <td className="px-4 py-3 text-slate-400">{r.label}</td>
+                      <td className="relative px-4 py-3 font-semibold">
+                        <span className="inline-flex items-center gap-2">
+                          {teamById(r.teamId)?.name ?? r.teamId}
+                        </span>
+                        <div className="pointer-events-none invisible absolute right-2 top-1/2 z-30 -translate-y-1/2 whitespace-nowrap rounded-xl border border-white/10 bg-[#0b111c]/95 px-4 py-3 text-xs shadow-2xl opacity-0 transition-opacity duration-150 group-hover:visible group-hover:opacity-100">
+                          <p className="font-bold text-white">{teamById(r.teamId)?.name ?? r.teamId}</p>
+                          <p className="mt-1 text-slate-400">
+                            {dLabel}{g ? ` · Grupo ${g.toUpperCase()}` : ""}
+                          </p>
+                          <p className="mt-1 font-semibold text-rivals-gold">{r.points} PTS</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right font-bold text-rivals-gold">{r.points}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

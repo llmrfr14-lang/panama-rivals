@@ -201,33 +201,43 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody>
-                {top8.map((r, i) => (
-                  <tr key={`${r.div}-${r.teamId}`} className="border-t border-rivals-border/50 transition hover:bg-white/5">
-                    <td className="px-4 py-3 text-slate-400">
-                      <span className="inline-flex items-center gap-2">
-                        {i === 0 && <span className="text-base">🥇</span>}
-                        {i === 1 && <span className="text-base">🥈</span>}
-                        {i === 2 && <span className="text-base">🥉</span>}
-                        {r.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-semibold">
-                      <span className="inline-flex items-center gap-2">
-                        {registrations.find((x) => x.id === r.teamId)?.teamName ?? r.teamId}
-                        <span
-                          className={
-                            r.div === "elite"
-                              ? "rounded-full bg-rivals-gold/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rivals-gold"
-                              : "rounded-full bg-rivals-blue/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rivals-blue"
-                          }
-                        >
-                          {r.div === "elite" ? "Elite" : "Challenger"}
+                {top8.map((r, i) => {
+                  const rec = registrations.find((x) => x.id === r.teamId);
+                  const g = rec?.groupId?.split("-")[1] ?? "";
+                  const gLabel = g ? `${r.div === "elite" ? "Elite" : "Challenger"} · Grupo ${g.toUpperCase()}` : (r.div === "elite" ? "⚡ Elite" : "🛡️ Challenger");
+                  return (
+                    <tr key={`${r.div}-${r.teamId}`} className="group relative border-t border-rivals-border/50 transition hover:bg-white/5">
+                      <td className="px-4 py-3 text-slate-400">
+                        <span className="inline-flex items-center gap-2">
+                          {i === 0 && <span className="text-base">🥇</span>}
+                          {i === 1 && <span className="text-base">🥈</span>}
+                          {i === 2 && <span className="text-base">🥉</span>}
+                          {r.label}
                         </span>
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-bold text-rivals-gold">{r.points} PTS</td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="relative px-4 py-3 font-semibold">
+                        <span className="inline-flex items-center gap-2">
+                          {rec?.teamName ?? r.teamId}
+                          <span
+                            className={
+                              r.div === "elite"
+                                ? "rounded-full bg-rivals-gold/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rivals-gold"
+                                : "rounded-full bg-rivals-blue/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rivals-blue"
+                            }
+                          >
+                            {r.div === "elite" ? "Elite" : "Challenger"}
+                          </span>
+                        </span>
+                        <div className="pointer-events-none invisible absolute right-2 top-1/2 z-30 -translate-y-1/2 whitespace-nowrap rounded-xl border border-white/10 bg-[#0b111c]/95 px-4 py-3 text-xs shadow-2xl opacity-0 transition-opacity duration-150 group-hover:visible group-hover:opacity-100">
+                          <p className="font-bold text-white">{rec?.teamName ?? r.teamId}</p>
+                          <p className="mt-1 text-slate-400">{gLabel}</p>
+                          <p className="mt-1 font-semibold text-rivals-gold">{r.points} PTS</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right font-bold text-rivals-gold">{r.points} PTS</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

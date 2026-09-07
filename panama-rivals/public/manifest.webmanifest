@@ -1,0 +1,25 @@
+{
+  "name": "Panamá Rivals",
+  "short_name": "PR Rivals",
+  "description": "Liga abierta de Rocket League en Panamá. Registra tu equipo, juega grupos y eliminatorias en un solo día.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0e16",
+  "theme_color": "#0a0e16",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

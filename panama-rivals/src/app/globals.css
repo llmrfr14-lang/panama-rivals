@@ -4,6 +4,15 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  /* Keyboard a11y — every interactive element gets a visible focus ring(no mouse-only outlines。 */
+  :where(button, a, select, input, textarea, summary):focus-visible {
+    outline: none;
+    box-shadow:  0  0  0  3px rgba(58,134,255,0.45);
+    border-radius: 8px;
+  }
+}
+
 @layer components {
   .glass-card {
     background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));

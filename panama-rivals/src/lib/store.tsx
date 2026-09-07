@@ -194,6 +194,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch { /* ignore */ }
   }, [state, hydrated]);
 
+  // Cross-tab realtime — another tab inthis browser writes localStorage → apply immediately.
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== LS_KEY || !e.newValue) return;
+      try {
+        const next = JSON.parse(e.newValue) as Persisted;
+        if (Array.isArray(next?.registrations)) setState(next);
+      } catch { /* malformed */ }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [hydrated]);
+
   // Realtime: another browser changes data → merge into our state
   useEffect(() => {
     if (!sb) return;
