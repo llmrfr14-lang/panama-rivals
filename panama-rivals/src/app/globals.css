@@ -180,3 +180,57 @@ select option:disabled {
     animation: none;
   }
 }
+
+/* Skeleton loading placeholders (pulse shimmer) */
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255,255,255,0.06);
+  border-radius: 0.75rem;
+}
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.09), transparent);
+  animation: rivals-shimmer 1.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer::after {
+    animation: none;
+  }
+}
+
+/* Soft slide+fade when switching division on /bracket or route sections appear */
+@keyframes rivals-fade-slide {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-slide {
+  animation: rivals-fade-slide 0.28s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fade-slide {
+    animation: none;
+  }
+}
+
+/* Arena marquee ticker (home — below hero)) */
+.marquee-track {
+  animation: rivals-marquee 32s linear infinite;
+}
+.group:hover .marquee-track {
+  animation-play-state: paused;
+}
+@keyframes rivals-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}

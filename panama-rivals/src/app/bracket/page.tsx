@@ -6,13 +6,14 @@ import { useStore } from "@/lib/store";
 import { placementFor, Division } from "@/lib/league";
 import { useI18n } from "@/lib/i18n";
 import { BracketTree } from "@/components/BracketTree";
+import { BracketSkeleton } from "@/components/Skeleton";
 
 const myTeamKey = "pr-my-team";
 const divKey = "pr-div";
 
 export default function BracketPage() {
   const { t } = useI18n();
-  const { matches, teamById, registrations, checkInTeam } = useStore();
+  const { matches, teamById, registrations, checkInTeam, hydrated } = useStore();
   const [div, setDiv] = useState<Division>(() => {
     if (typeof window === "undefined") return "challenger";
     const saved = window.localStorage.getItem(divKey) as Division | null;
@@ -118,19 +119,25 @@ export default function BracketPage() {
         </div>
       )}
 
-      {qf.length > 0 || sf.length > 0 || fin ? (
-        <BracketTree
-          qf={qf}
-          sf={sf}
-          fin={fin}
-          teamById={teamById}
-          myTeam={myTeam}
-          now={now}
-          onCheckIn={checkInTeam}
-          titles={{ qf: t("div.qf"), sf: t("div.semis"), fin: t("div.final") }}
-        />
+      {!hydrated ? (
+        <div className="mt-10 rounded-3xl border border-white/10 bg-white/5 p-8">
+          <BracketSkeleton />
+        </div>
+      ) : qf.length > 0 || sf.length > 0 || fin ? (
+        <div key={div} className="fade-slide">
+          <BracketTree
+            qf={qf}
+            sf={sf}
+            fin={fin}
+            teamById={teamById}
+            myTeam={myTeam}
+            now={now}
+            onCheckIn={checkInTeam}
+            titles={{ qf: t("div.qf"), sf: t("div.semis"), fin: t("div.final") }}
+          />
+        </div>
       ) : (
-        <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-10 text-center">
+        <div className="fade-slide mt-10 rounded-2xl border border-white/10 bg-white/5 p-10 text-center">
           <p className="emoji text-4xl">🏆</p>
           <p className="mt-3 font-semibold text-white">{t("bracket.emptyTitle")}</p>
           <p className="mt-1 text-sm text-slate-400">{t("bracket.emptyBody")}</p>

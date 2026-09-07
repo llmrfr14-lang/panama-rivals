@@ -7,7 +7,25 @@ import { useStore } from "@/lib/store";
 import { placementFor, type Division } from "@/lib/league";
 import { SocialIcons } from "@/components/SocialIcons";
 import Reveal from "@/components/Reveal";
+import { Marquee } from "@/components/Marquee";
 
+function useCountUp(target: number, durationMs = 700) {
+  const [value, setValue] = useState(0);
+  const rafRef = useRef<number>(0);
+  useEffect(() => {
+    const start = performance.now();
+    const from = 0;
+    const step = (now: number) => {
+      const p = Math.min(1, (now - start) / durationMs);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setValue(Math.round(from + (target - from) * eased));
+      if (p < 1) rafRef.current = requestAnimationFrame(step);
+    };
+    rafRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafRef.current ?? 0);
+  }, [target, durationMs]);
+  return value;
+}
 const features = [
   { icon: "🗺️", key: "groups" },
   { icon: "🔥", key: "points" },
@@ -28,6 +46,7 @@ export default function Home() {
   const { registrations, matches } = useStore();
   const heroRef = useRef<HTMLElement | null>(null);
   const [spotOn, setSpotOn] = useState(false);
+  const teamCount = useCountUp(registrations.length);
 
   // Live Season 2 ranking — top 8 across both divisions (placement points per the official PDF).
   const top8 = useMemo(() => {
@@ -124,10 +143,12 @@ export default function Home() {
             <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rivals-blue" />
           </span>
           {lang === "en"
-            ? `${registrations.length} teams in · Season 2`
-            : `${registrations.length} equipos en · Temporada 2`}
+            ? `${teamCount} teams in · Season 2`
+            : `${teamCount} equipos en · Temporada 2`}
         </Link>
       </section>
+
+      <Marquee />
 
       {/* ── EXPERIENCE ── */}
       <section className="relative mx-auto max-w-6xl px-4 py-20">

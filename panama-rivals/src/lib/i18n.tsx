@@ -35,6 +35,8 @@ const dict: Record<string, Record<Lang, string>> = {
   "hero.cta": { es: "Regístrate", en: "Register" },
   "hero.discord": { es: "Únete al Discord", en: "Join Discord" },
   "hero.next": { es: "Temporada 2 · por anunciar", en: "Season 2 · TBA" },
+  "home.marqueeLive": { es: "EN VIVO", en: "LIVE" },
+  "home.marqueePremier": { es: "Gran Premio", en: "Main event" },
   "hero.champ": { es: "👑 Campeón T1: Porotos FC", en: "👑 S1 Champions: Porotos FC" },
   "hero.overline": { es: "LA CASA DE LAS", en: "THE HOME OF" },
   "hero.kicker": { es: "CORRIDAS AL TÍTULO", en: "CHAMPIONSHIP RUNS" },

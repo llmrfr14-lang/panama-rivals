@@ -38,6 +38,7 @@ type Store = {
   submissions: Submission[];
   registrations: Registration[];
   supabaseConfigured: boolean;
+  hydrated: boolean;
  registerTeam: (teamName: string, captain: RivalContact, players: PlayerInfo[]) => Registration;
   assignGroup: (registrationId: string, groupId: string | null) => void;
   reviewRegistration: (registrationId: string, status: RegistrationStatus) => void;
@@ -615,6 +616,7 @@ const bracketWinner = (m: Match): string | null => {
         matches: state.matches,
         submissions: state.submissions,
         registrations: state.registrations,
+        hydrated,
         supabaseConfigured: Boolean(sb),
         registerTeam,
         assignGroup,

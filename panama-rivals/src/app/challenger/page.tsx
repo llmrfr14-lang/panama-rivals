@@ -3,12 +3,13 @@
 import DivisionView from "@/components/DivisionView";
 import NextMatchPanel from "@/components/NextMatchPanel";
 import AdvanceChip from "@/components/AdvanceChip";
+import { CardSkeleton } from "@/components/Skeleton";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
 export default function ChallengerPage() {
   const { t } = useI18n();
-  const { registrations } = useStore();
+  const { registrations, hydrated } = useStore();
   const n = registrations.filter((r) => r.division === "challenger" || !r.division).length;
 
   return (
@@ -17,9 +18,18 @@ export default function ChallengerPage() {
         <span className="bg-gradient-to-r from-rivals-blue via-rivals-gold to-rivals-red bg-clip-text text-transparent">Challenger</span>
       </h1>
       <p className="mt-2 text-slate-400">{t("div.challengerSub").replace("{n}", String(n))}</p>
-      <AdvanceChip division="challenger" />
-      <NextMatchPanel division="challenger" titleLabel={t("bracket.nextUp")} />
-      <DivisionView division="challenger" />
+      {hydrated ? (
+        <div className="fade-slide">
+          <AdvanceChip division="challenger" />
+          <NextMatchPanel division="challenger" titleLabel={t("bracket.nextUp")} />
+          <DivisionView division="challenger" />
+        </div>
+      ) : (
+        <div className="mt-6 space-y-4">
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+      )}
     </div>
   );
 }
