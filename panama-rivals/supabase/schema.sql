@@ -56,11 +56,13 @@ create table if not exists submissions (
   status text not null default 'pending',
   note text,
   photo text,
+  replay text,
   created_at bigint not null
 );
 
 -- Idempotent upgrades for older tables
 alter table submissions add column if not exists photo text;
+alter table submissions add column if not exists replay text;
 
 -- Read access is public (standings/stats pages), writes go through the anon key
 -- with RLS locked to the service role in production; for a community league,

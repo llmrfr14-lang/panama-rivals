@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
-import type { Match } from "@/lib/types";
+import type { Match, StatLine } from "@/lib/types";
 import type { Division } from "@/lib/league";
 
 export default function AdminPage() {
@@ -24,6 +24,7 @@ export default function AdminPage() {
     generateBracket,
     applyCheckInDeadlines,
     reportToken,
+    rosterOf,
   } = useStore();
 
   const pending = submissions.filter((s) => s.status === "pending");
@@ -41,6 +42,23 @@ export default function AdminPage() {
   const [wrong, setWrong] = useState(false);
   const [checking, setChecking] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, Record<string, StatLine>>>({});
+
+  const setDraftLine = (subId: string, playerId: string, teamId: string, field: "goals" | "assists" | "saves" | "shots", value: number) => {
+    setDrafts((d) => {
+      const prev = d[subId]?.[playerId] ?? { playerId, teamId, goals: 0, assists:   0, saves:   0, shots: 0 };
+      return { ...d, [subId]: { ...(d[subId] ?? {}), [playerId]: { ...prev, [field]: value } } };
+    });
+  };
+
+  const draftLinesFor = (subId: string, teamId: string, players: { id: string; handle: string }[]): StatLine[] => {
+    const fields: ("goals" | "assists" | "saves" | "shots")[] = ["goals", "assists", "saves", "shots"];
+    return players.map((p) => {
+      const draft = drafts[subId]?.[p.id];
+      if (!draft) return { playerId: p.id, teamId, goals:  0, assists:   0, saves:   0, shots:  0 };
+      return { playerId: p.id, teamId, goals: draft.goals ??  0, assists: draft.assists ??  0, saves: draft.saves ??  0, shots: draft.shots ??  0 };
+    });
+  };
 
   const verifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -512,29 +530,45 @@ export default function AdminPage() {
                   envió: {s.submittedBy}
                 </span>
               </div>
-              <div className="mt-3 overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead className="text-slate-500">
-                    <tr>
-                      <th className="py-1 text-left">Player</th>
-                      <th className="py-1 text-center">G</th>
-                      <th className="py-1 text-center">A</th>
-                      <th className="py-1 text-center">S</th>
-                      <th className="py-1 text-center">Shots</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {s.stats.map((st) => (
-                      <tr key={st.playerId} className="border-t border-rivals-border/40">
-                        <td className="py-1">{st.playerId}</td>
-                        <td className="py-1 text-center">{st.goals}</td>
-                        <td className="py-1 text-center">{st.assists}</td>
-                        <td className="py-1 text-center">{st.saves}</td>
-                        <td className="py-1 text-center">{st.shots}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="mt-3 space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+                  Stats individuales — las cargan los admins (los capitanes ya no las envían)
+                </p>
+                {(() => {
+                  const teamIds = [m?.homeTeamId ?? "", m?.awayTeamId ?? ""];
+                  return teamIds.map((tid) => (
+                    <div key={tid}>
+                      <p className="text-xs font-bold uppercase tracking-widest text-rivals-gold">
+                        {teamById(tid)?.name ?? tid}
+                      </p>
+                      <div className="mt-1 space-y-1">
+                        {rosterOf(tid).map((p) => {
+                          const line = drafts[s.id]?.[p.id] ?? s.stats.find((st) => st.playerId === p.id) ?? { playerId: p.id, teamId: tid, goals:  0, assists:  0, saves:  0, shots:  0 };
+                          return (
+                            <div key={p.id} className="flex items-center gap-2 rounded border border-rivals-border/40 px-2 py-1 text-xs">
+                              <span className="min-w-0 flex-1 truncate font-semibold text-slate-200">{p.handle}</span>
+                              {(["goals", "assists", "saves", "shots"] as const).map((f) => (
+                                <label key={f} className="flex items-center gap-1 text-slate-400">
+                                  <span className="uppercase">{f.slice(0, 1)}</span>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={line[f]}
+                                    onChange={(e) => setDraftLine(s.id, p.id, tid, f, Number(e.target.value) || 0)}
+                                    className="w-14 soft-ring rounded-lg border border-white/10 bg-white/5 px-1 py-0.5 text-center backdrop-blur-md transition"
+                                  />
+                                </label>
+                              ))}
+                            </div>
+                          );
+                        })}
+                        {rosterOf(tid).length === 0 && (
+                          <p className="text-slate-500">Roster pendiente</p>
+                        )}
+                      </div>
+                    </div>
+                  ));
+                })()}
               </div>
               {s.photo ? (
                 <div className="mt-3">
@@ -552,9 +586,22 @@ export default function AdminPage() {
               ) : (
                 <p className="mt-3 text-xs text-amber-400">Sin foto del marcador</p>
               )}
+              {s.replay ? (
+                <p className="mt-1 text-xs text-emerald-300">
+                  ✓ Replay adjunto:{" "}
+                  <a href={s.replay} download className="underline">
+                    descargar .replay
+                  </a>
+                </p>
+              ) : null}
               <div className="mt-3 flex gap-2">
                 <button
-                  onClick={() => approve(s.id)}
+                  onClick={() => approve(
+                    s.id,
+                    draftLinesFor(s.id, m?.homeTeamId ?? "", rosterOf(m?.homeTeamId ?? null)).concat(
+                      draftLinesFor(s.id, m?.awayTeamId ?? "", rosterOf(m?.awayTeamId ?? null))
+                    )
+                )}
                   className="soft-ring rounded-full bg-rivals-red px-4 py-2 text-sm font-bold text-white shadow-[0_4px_12px_rgba(230,57,70,0.3)] transition hover:brightness-110"
                 >
                   {t("admin.approve")}

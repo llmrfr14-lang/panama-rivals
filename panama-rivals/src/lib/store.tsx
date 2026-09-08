@@ -52,10 +52,11 @@ type Store = {
     submittedBy: string,
     homeScore: number,
     awayScore: number,
-    stats: StatLine[],
-    photo?: string
+    stats?: StatLine[],
+    photo?: string,
+    replay?: string
   ) => void;
-  approve: (submissionId: string) => void;
+  approve: (submissionId: string, stats?: StatLine[]) => void;
   decline: (submissionId: string, note?: string) => void;
   teamById: (id: string | null) => Team | null;
   playerById: (id: string) => Player | undefined;
@@ -145,7 +146,7 @@ function matchFromRow(r: any): Match {
   };
 }
 function subFromRow(r: any): Submission {
-  return { id: r.id, matchId: r.match_id, submittedBy: r.submitted_by, homeScore: r.home_score, awayScore: r.away_score, stats: r.stats ?? [], status: r.status, note: r.note ?? undefined, photo: r.photo ?? undefined, createdAt: Number(r.created_at) };
+  return { id: r.id, matchId: r.match_id, submittedBy: r.submitted_by, homeScore: r.home_score, awayScore: r.away_score, stats: r.stats ?? [], status: r.status, note: r.note ?? undefined, photo: r.photo ?? undefined, replay: r.replay ?? undefined, createdAt: Number(r.created_at) };
 }
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
@@ -297,7 +298,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
   const upsertSub = (s: Submission) => {
     if (!sb) return;
-    sb.from("submissions").upsert({ id: s.id, match_id: s.matchId, submitted_by: s.submittedBy, home_score: s.homeScore, away_score: s.awayScore, stats: s.stats, status: s.status, note: s.note ?? null, photo: s.photo ?? null, created_at: s.createdAt }).then(() => {}, (e) => console.error("supabase upsert failed:", e));
+    sb.from("submissions").upsert({ id: s.id, match_id: s.matchId, submitted_by: s.submittedBy, home_score: s.homeScore, away_score: s.awayScore, stats: s.stats, status: s.status, note: s.note ?? null, photo: s.photo ?? null, replay: s.replay ?? null, created_at: s.createdAt }).then(() => {}, (e) => console.error("supabase upsert failed:", e));
   };
 
   const registerTeam: Store["registerTeam"] = (teamName, captain, players) => {
@@ -515,16 +516,17 @@ const bracketWinner = (m: Match): string | null => {
       return s;
     });
   };
-  const submitResult: Store["submitResult"] = (matchId, submittedBy, homeScore, awayScore, stats, photo?) => {
+  const submitResult: Store["submitResult"] = (matchId, submittedBy, homeScore, awayScore, stats?, photo?, replay?) => {
     const sub: Submission = {
       id: `sub-${Date.now()}`,
       matchId,
       submittedBy,
       homeScore,
       awayScore,
-      stats,
+      stats: stats ?? [],
       status: "pending",
       photo,
+      replay,
       createdAt: Date.now(),
     };
     setState((s) => ({
@@ -537,23 +539,24 @@ const bracketWinner = (m: Match): string | null => {
     if (m) upsertMatch({ ...m, status: "pending_review" });
   };
 
-  const approve = (submissionId: string) => {
+  const approve: Store["approve"] = (submissionId, stats) => {
     const sub = state.submissions.find((x) => x.id === submissionId);
     if (!sub) return;
-    const approvedSub = { ...sub, status: "approved" as const };
+    const finalStats = stats ?? sub.stats ?? [];
+    const approvedSub = { ...sub, status: "approved" as const, stats: finalStats };
     const match = state.matches.find((m) => m.id === sub.matchId);
     setState((s) => ({
       ...s,
       submissions: s.submissions.map((x) => (x.id === submissionId ? approvedSub : x)),
       matches: s.matches.map((m) =>
         m.id === sub.matchId
-          ? { ...m, homeScore: sub.homeScore, awayScore: sub.awayScore, stats: sub.stats, status: "approved" }
+          ? { ...m, homeScore: sub.homeScore, awayScore: sub.awayScore, stats: finalStats, status: "approved" }
           : m
       ),
     }));
     upsertSub(approvedSub);
     if (match) {
-      const advanced = { ...match, homeScore: sub.homeScore, awayScore: sub.awayScore, stats: sub.stats, status: "approved" as const };
+      const advanced = { ...match, homeScore: sub.homeScore, awayScore: sub.awayScore, stats: finalStats, status: "approved" as const };
       upsertMatch(advanced);
       if (match.stage !== "group" && match.groupId) advanceBracketPure(match.groupId as Division, state.matches);
     }

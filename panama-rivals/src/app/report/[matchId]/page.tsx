@@ -4,7 +4,6 @@ import { useParams, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
-import { StatLine } from "@/lib/types";
 
 export default function ReportPage() {
   const params = useParams<{ matchId: string }>();
@@ -14,7 +13,6 @@ export default function ReportPage() {
   const {
     matches,
     teamById,
-    rosterOf,
     isValidReportToken,
     submitResult,
   } = useStore();
@@ -28,10 +26,11 @@ export default function ReportPage() {
   const authorized = Boolean(match) && token !== "" && isValidReportToken(matchId, token);
 
   const [score, setScore] = useState("1:0");
-  const [stats, setStats] = useState<Record<string, StatLine>>({});
   const [submitted, setSubmitted] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState(false);
+  const [replay, setReplay] = useState<string | null>(null);
+  const [replayName, setReplayName] = useState("");
 
   const onPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -39,6 +38,15 @@ export default function ReportPage() {
     if (!file.type.startsWith("image/")) { setPhotoError(true); return; }
     const reader = new FileReader();
     reader.onload = () => { setPhoto(String(reader.result)); setPhotoError(false); };
+    reader.readAsDataURL(file);
+  };
+
+  const onReplay = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) { setReplay(null); setReplayName(""); return; }
+    if (!file.name.toLowerCase().endsWith(".replay")) { setReplay(null); setReplayName(""); return; }
+    const reader = new FileReader();
+    reader.onload = () => { setReplay(String(reader.result)); setReplayName(file.name); };
     reader.readAsDataURL(file);
   };
 
@@ -104,35 +112,18 @@ export default function ReportPage() {
     );
   }
 
-  const rosters = [
-    { teamId: match.homeTeamId!, players: rosterOf(match.homeTeamId) },
-    { teamId: match.awayTeamId!, players: rosterOf(match.awayTeamId) },
-  ];
-
-  const setLine = (
-    playerId: string,
-    teamId: string,
-    field: "goals" | "assists" | "saves" | "shots",
-    value: number
-  ) => {
-    setStats((s) => {
-      const prev = s[playerId] ?? { playerId, teamId, goals: 0, assists: 0, saves: 0, shots: 0 };
-      return { ...s, [playerId]: { ...prev, [field]: value } };
-    });
-  };
-
   const [h, a] = score.split(":").map(Number);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!photo) {
+    if (!photo && !replay) {
       setPhotoError(true);
       return;
     }
-    const lines = rosters.flatMap(({ teamId, players }) =>
-      players.map((p) => stats[p.id] ?? { playerId: p.id, teamId, goals: 0, assists: 0, saves: 0, shots: 0 })
-    );
-    submitResult(matchId, "captain", h || 0, a || 0, lines, photo ?? undefined);
+    // Los capitanes solo reportan el marcador + evidencia (foto o replay);
+    // las stats individuales las cargan los admins al aprobar.
+
+    submitResult(matchId, "captain", h || 0, a || 0, [], photo ?? undefined, replay ?? undefined);
     setSubmitted(true);
   };
 
@@ -154,47 +145,12 @@ export default function ReportPage() {
         </label>
 
         <div>
-          <p className="text-sm text-slate-400">Stats por jugador</p>
-          <div className="mt-3 grid gap-4 sm:grid-cols-2">
-            {rosters.map(({ teamId, players }) => (
-              <div key={teamId}>
-                <p className="text-xs font-semibold uppercase tracking-widest text-rivals-gold">
-                  {teamById(teamId)?.name}
-                </p>
-                <div className="mt-3 space-y-3">
-                  {players.map((p) => {
-                    const line = stats[p.id] ?? { playerId: p.id, teamId, goals: 0, assists: 0, saves: 0, shots: 0 };
-                    return (
-                      <div key={p.id} className="rounded border border-rivals-border/60 p-3 text-xs">
-                        <p className="font-semibold text-slate-200">{p.handle}</p>
-                        <div className="mt-2 grid grid-cols-4 gap-2 text-slate-400">
-                          {(["goals", "assists", "saves", "shots"] as const).map((f) => (
-                            <label key={f}>
-                              <span className="uppercase">{f.slice(0, 1)}</span>
-                              <input
-                                type="number"
-                                min={0}
-                                value={line[f]}
-                                onChange={(e) => setLine(p.id, teamId, f, Number(e.target.value) || 0)}
-                                className="mt-1 w-full soft-ring rounded-lg border border-white/10 bg-white/5 px-1 py-1 text-center backdrop-blur-md transition"
-                              />
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {players.length === 0 && (
-                    <p className="text-slate-500">Roster pendiente — agrega los handles desde Discord.</p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          <p className="text-sm text-slate-400">
+            Las estadísticas individuales las cargan los admins al aprobar — no necesitas llenarlas aqui..
+          </p>
         </div>
-
         <label className="block">
-          <span className="text-sm text-slate-400">Foto del marcador final (obligatoria; TODOS los jugadores deben aparecer en la foto)</span>
+          <span className="text-sm text-slate-400">Foto del marcador final（opcional si subes replay; TODOS los jugadores deben aparecer en la foto)</span>
           <input
             type="file"
             accept="image/*"
@@ -204,10 +160,22 @@ export default function ReportPage() {
           {photo && (
             <img src={photo} alt="Marcador final" className="mt-2 h-24 w-auto rounded-lg border border-white/10 object-contain" />
           )}
-          {photoError && (
-            <p className="mt-1 text-xs text-rose-400">Sube una foto del marcador final para enviar el resultado.</p>
+        </label>
+        <label className="block">
+          <span className="text-sm text-slate-400">Replay del partido (.replay — opcional si subes foto)</span>
+          <input
+            type="file"
+            accept=".replay"
+            onChange={onReplay}
+            className="mt-1 w-full soft-ring rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm backdrop-blur-md transition file:mr-3 file:rounded-full file:border-0 file:bg-rivals-blue file:px-4 file:py-2 file:text-white"
+          />
+          {replayName && (
+            <p className="mt-1 text-xs text-emerald-300">✓ {replayName}</p>
           )}
         </label>
+        {photoError && (
+          <p className="text-xs text-rose-400">Sube una foto del marcador final o un archivo .replay para enviar el resultado..</p>
+        )}
         <button
           type="submit"
           disabled={submitted || match.status !== "scheduled"}

@@ -54,10 +54,11 @@ export type Submission = {
   submittedBy: string;
   homeScore: number;
   awayScore: number;
-  stats: StatLine[];
+  stats: StatLine[]; // filled by admins on approval — captains don't submit these
   status: SubmissionStatus;
   note?: string;
   photo?: string; // data URL del marcador final (todos los jugadores visibles
+  replay?: string; // data URL del archivo .replay — evidencia alterna al foto
   createdAt: number;
 };
 
