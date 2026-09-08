@@ -409,7 +409,7 @@ const bracketWinner = (m: Match): string | null => {
     setState((s) => {
       const divRegs = s.registrations.filter((r) => r.division === division);
       const groupsWithTeams = ["A", "B", "C", "D"].map((g) => `${division}-${g}`).filter((gid) => divRegs.some((r) => r.groupId === gid));
-      const needsQF = groupsWithTeams.length >= 2;
+      const needsQF = groupsWithTeams.length === 4;
       if (!needsQF && groupsWithTeams.length !== 1) return s;
       const seeds = bracketSeeds(division, s.matches, s.registrations); if (!seeds) return s; if (!needsQF) { if (!seeds?.fin) return s; } else { if (!seeds?.qf) return s; }
       const canFinal = Boolean(seeds?.fin);
