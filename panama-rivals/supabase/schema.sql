@@ -174,5 +174,5 @@ end $$;
 drop trigger if exists bracket_state_regen on matches;
 
 
-create trigger bracket_state_regen after update of status on matches;
+create trigger bracket_state_regen after update of status on matches
 for each row execute function bracket_flag_bracket_regen();
