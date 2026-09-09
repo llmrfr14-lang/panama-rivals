@@ -8,14 +8,44 @@ import RankBadge from "@/components/RankBadge";
 
 const groupKeys = ["A", "B", "C", "D"];
 
+type TeamCardProps = {
+  team: {
+    id: string;
+    teamName: string;
+    captain: { discord?: string; epicId?: string };
+    players: { epicId?: string; discord?: string; peakRank?: string }[];
+  };
+  lang: "es" | "en";
+};
+
+function TeamCard({ team, lang }: TeamCardProps) {
+  return (
+    <div className="glass-card rounded-3xl p-4">
+      <p className="font-semibold">{team.teamName}</p>
+      <p className="mt-1 text-xs text-slate-500">
+        Cap: {[team.captain.discord, team.captain.epicId].filter(Boolean).join(" · ") || "—"}
+      </p>
+      <div className="mt-3 space-y-1 text-sm text-slate-300">
+        {team.players.map((p, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-rivals-blue" />
+            <span className="font-medium">{p.epicId || p.discord || "NA"}</span>
+            <RankBadge rank={p.peakRank} lang={lang} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function TeamsPage() {
   const { lang } = useI18n();
   const { registrations } = useStore();
   const approved = registrations.filter((r) => r.status === "approved");
 
   const divisions: { div: Division; label: string; filter: (r: { division?: Division }) => boolean }[] = [
-    { div: "challenger", label: lang === "en" ? "Challenger · ≤ Champion 2" : "Challenger · ≤ Champion 2", filter: (r) => r.division === "challenger" || !r.division },
-    { div: "elite", label: lang === "en" ? "Elite · Champion 3+" : "Elite · Champion 3+", filter: (r) => r.division === "elite" },
+    { div: "challenger", label: "Challenger · ≤ Champion 2", filter: (r) => r.division === "challenger" || !r.division },
+    { div: "elite", label: "Elite · Champion 3+", filter: (r) => r.division === "elite" },
   ];
 
   return (
@@ -34,14 +64,15 @@ export default function TeamsPage() {
           </p>
           <p className="mt-2 text-sm text-slate-400">
             {lang === "en"
-              ? "Teams appear here once the admin approves them and the group draw happens."
-              : "Los equipos aparecen aquí cuando la admin los acepta y se sorteen los grupos."}
+              ? "Teams appear here once the admin approves them."
+              : "Los equipos aparecen aquí una vez la admin los acepta."}
           </p>
         </div>
       ) : (
         divisions.map(({ div, label, filter }) => {
           const divTeams = approved.filter(filter);
           if (divTeams.length === 0) return null;
+          const ungrouped = divTeams.filter((r) => !r.groupId);
           return (
             <section key={div} className="mt-12">
               <h2 className="font-display text-2xl font-black text-rivals-gold">{label}</h2>
@@ -56,26 +87,24 @@ export default function TeamsPage() {
                       </h3>
                       <div className="mt-4 space-y-4">
                         {groupTeams.map((team) => (
-                          <div key={team.id} className="glass-card rounded-3xl p-4">
-                            <p className="font-semibold">{team.teamName}</p>
-                            <p className="mt-1 text-xs text-slate-500">
-                              Cap: {[team.captain.discord, team.captain.epicId].filter(Boolean).join(" · ") || "—"}
-                            </p>
-                            <div className="mt-3 space-y-1 text-sm text-slate-300">
-                              {team.players.map((p, i) => (
-                                <div key={i} className="flex items-center gap-2">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-rivals-blue" />
-                                  <span className="font-medium">{p.epicId || p.discord || "NA"}</span>
-                                  <RankBadge rank={p.peakRank} lang={lang} />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
+                          <TeamCard key={team.id} team={team} lang={lang} />
                         ))}
                       </div>
                     </div>
                   );
                 })}
+                {ungrouped.length > 0 && (
+                  <div className="rounded-3xl border border-dashed border-rivals-cyan/25 p-4">
+                    <h3 className="font-display text-lg font-bold text-rivals-gold">
+                      {lang === "en" ? "Unassigned" : "Sin grupo"}
+                    </h3>
+                    <div className="mt-4 space-y-4">
+                      {ungrouped.map((team) => (
+                        <TeamCard key={team.id} team={team} lang={lang} />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
           );
