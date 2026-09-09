@@ -20,7 +20,7 @@ type TeamCardProps = {
 
 function TeamCard({ team, lang }: TeamCardProps) {
   return (
-    <div className="glass-card rounded-3xl p-4">
+    <div className="glass-card w-64 shrink-0 rounded-3xl p-4">
       <p className="font-semibold">{team.teamName}</p>
       <p className="mt-1 text-xs text-slate-500">
         Cap: {[team.captain.discord, team.captain.epicId].filter(Boolean).join(" · ") || "—"}
@@ -85,7 +85,7 @@ export default function TeamsPage() {
                       <h3 className="font-display text-lg font-bold text-rivals-gold">
                         {lang === "en" ? "Group" : "Grupo"} {g}
                       </h3>
-                      <div className="mt-4 space-y-4">
+                      <div className="mt-4 flex flex-wrap gap-4">
                         {groupTeams.map((team) => (
                           <TeamCard key={team.id} team={team} lang={lang} />
                         ))}
@@ -98,7 +98,7 @@ export default function TeamsPage() {
                     <h3 className="font-display text-lg font-bold text-rivals-gold">
                       {lang === "en" ? "Unassigned" : "Sin grupo"}
                     </h3>
-                    <div className="mt-4 space-y-4">
+                    <div className="mt-4 flex flex-wrap gap-4">
                       {ungrouped.map((team) => (
                         <TeamCard key={team.id} team={team} lang={lang} />
                       ))}
