@@ -45,8 +45,13 @@ export const metadata: Metadata = {
   icons: { icon: "/logo.png", apple: "/logo.png" },
 };
 
+const LIGHT_THEME_COLOR = "#eef2f8";
+
 export const viewport: Viewport = {
-  themeColor: "#0a0e16",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#070b12" },
+    { media: "(prefers-color-scheme: light)", color: LIGHT_THEME_COLOR },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -97,6 +102,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0">
           <div className="rivals-aura absolute inset-0" />
         </div>
+        {/* Fixed hexagonal arena-mesh texture — RL honeycomb over everything */}
+        <div aria-hidden="true" className="rivals-hex" />
         <Providers>
           <ScrollProgress />
           <Header />

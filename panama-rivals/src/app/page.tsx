@@ -118,24 +118,28 @@ export default function Home() {
         />
         <div className={`hero-spotlight${spotOn ? " hero-spotlight-on" : ""}`} aria-hidden="true" />
         <div className="relative">
-          <div className="absolute inset-0 -z-10 scale-125 rounded-full bg-rivals-red blur-3xl opacity-30" />
+          {/* Twin team-color glows — cyan (blue team) + orange (orange team) */}
+          <div className="absolute -left-8 top-0 -z-10 h-40 w-40 rounded-full bg-rivals-cyan blur-3xl opacity-25" />
+          <div className="absolute -right-8 top-6 -z-10 h-40 w-40 rounded-full bg-rivals-orange blur-3xl opacity-25" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Panamá Rivals logo" className="h-36 w-36 rounded-3xl ring-1 ring-white/15 shadow-[0_24px_80px_rgba(0,0,0,0.6),0_0_60px_rgba(230,57,70,0.3)] md:h-44 md:w-44" />
+          <img src="/logo.png" alt="Panamá Rivals logo" className="h-36 w-36 rounded-3xl ring-1 ring-white/15 shadow-[0_24px_80px_rgba(0,0,0,0.6),0_0_60px_rgba(70,215,255,0.3)] md:h-44 md:w-44" />
         </div>
 
-        <p className="mt-6 text-sm font-bold uppercase tracking-[0.3em] text-rivals-gold">{t("hero.next")}</p>
-        <h1 className="mt-6 font-display text-5xl font-black leading-[0.95] tracking-tight drop-shadow-[0_2px_24px_rgba(230,57,70,0.35)] md:text-7xl">
-          <span className="shimmer-text bg-gradient-to-r from-rivals-red via-rivals-gold to-rivals-blue bg-clip-text text-transparent">
+        <p className="rivals-kicker-line mt-6 inline-flex items-center gap-3 text-sm font-bold uppercase tracking-[0.3em] text-rivals-gold">
+          <span>{t("hero.next")}</span>
+        </p>
+        <h1 className="mt-6 font-display text-5xl font-black leading-[0.95] tracking-tight drop-shadow-[0_2px_24px_rgba(255,122,47,0.28)] md:text-7xl">
+          <span className="shimmer-text bg-gradient-to-r from-rivals-cyan via-rivals-gold to-rivals-orange bg-clip-text text-transparent">
             {t("hero.title")}
           </span>
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-300">{t("hero.sub")}</p>
 
         <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link href="/register" className="soft-ring rounded-full bg-rivals-red px-8 py-3.5 font-bold text-white shadow-[0_8px_30px_rgba(230,57,70,0.45)] transition hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_12px_42px_rgba(230,57,70,0.55)]">
+          <Link href="/register" className="soft-ring rounded-full bg-rivals-orange px-8 py-3.5 font-bold text-white shadow-[0_8px_30px_rgba(255,122,47,0.4)] transition hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_12px_42px_rgba(255,122,47,0.5)]">
             {t("hero.cta")}
           </Link>
-          <a href="https://discord.gg/h66gaD8rA" className="soft-ring rounded-full border border-white/10 bg-white/5 px-7 py-3.5 font-bold text-slate-200 backdrop-blur-md transition hover:bg-white/10 hover:text-rivals-gold">
+          <a href="https://discord.gg/h66gaD8rA" className="soft-ring rounded-full border border-rivals-cyan/40 bg-rivals-cyan/10 px-7 py-3.5 font-bold text-rivals-cyanSoft backdrop-blur-md transition hover:bg-rivals-cyan/15 hover:text-white">
             {t("hero.discord")}
           </a>
         </div>
@@ -162,12 +166,17 @@ export default function Home() {
         </Link>
       </section>
 
+      {/* RL hazard stripe — arena boundary accent between hero and ticker */}
+      <div className="relative z-10 mx-auto -mt-2 flex justify-center" aria-hidden="true">
+        <div className="rivals-hazard" />
+      </div>
+
       <Marquee />
 
       {/* ── EXPERIENCE / CÓMO FUNCIONA ── */}
       <section aria-labelledby="how-it-works" className="relative mx-auto max-w-6xl px-4 py-20">
         <Reveal>
-        <p className="text-center text-xs font-black uppercase tracking-[0.35em] text-rivals-gold">{t("exp.kicker")}</p>
+        <p className="rivals-kicker-line mx-auto inline-flex items-center gap-3 text-center text-xs font-black uppercase tracking-[0.35em] text-rivals-gold">{t("exp.kicker")}</p>
         <h2 id="how-it-works" className="mx-auto mt-3 max-w-2xl text-center font-display text-3xl font-black leading-tight tracking-tight md:text-5xl">{t("exp.title")}</h2>
 
         {/* Auto-advance carousel en móvil — grilla en desktop */}
@@ -235,7 +244,7 @@ export default function Home() {
       {/* ── FORMAT / TIERS ── */}
       <section className="relative mx-auto max-w-6xl px-4 py-20">
         <Reveal className="glass-card rounded-3xl p-8 md:p-12">
-          <p className="text-center text-xs font-black uppercase tracking-[0.35em] text-rivals-gold">{t("tiers.kicker")}</p>
+          <p className="rivals-kicker-line mx-auto inline-flex items-center gap-3 text-center text-xs font-black uppercase tracking-[0.35em] text-rivals-gold">{t("tiers.kicker")}</p>
           <h2 className="mx-auto mt-3 max-w-xl text-center font-display text-2xl font-black leading-tight tracking-tight md:text-4xl">{t("tiers.title")}</h2>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -258,7 +267,7 @@ export default function Home() {
       {/* ── STATS ── */}
       <section className="relative mx-auto max-w-6xl px-4 py-20">
         <Reveal>
-          <p className="text-center text-xs font-black uppercase tracking-[0.35em] text-rivals-gold">{t("stats.kicker")}</p>
+          <p className="rivals-kicker-line mx-auto inline-flex items-center gap-3 text-center text-xs font-black uppercase tracking-[0.35em] text-rivals-gold">{t("stats.kicker")}</p>
           <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
             {stats.map((s, i) => (
               <Reveal key={s.key} delay={i * 100} className="glass-card rounded-3xl p-6 text-center">
@@ -277,7 +286,7 @@ export default function Home() {
           <Reveal>
             <div className="flex items-end justify-between gap-4">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.35em] text-rivals-gold">
+                <p className="rivals-kicker-line inline-flex items-center gap-3 text-xs font-black uppercase tracking-[0.35em] text-rivals-gold">
                   {lang === "en" ? "Matchday" : "Jornada"}
                 </p>
                 <h2 className="mt-2 font-display text-2xl font-black">
@@ -302,7 +311,7 @@ export default function Home() {
 
       {top8.length > 0 && (
         <Reveal className="relative mx-auto max-w-6xl px-4 pb-20">
-          <p className="text-center text-xs font-black uppercase tracking-[0.35em] text-rivals-gold">{t("bracket.ranking")}</p>
+          <p className="rivals-kicker-line mx-auto inline-flex items-center gap-3 text-center text-xs font-black uppercase tracking-[0.35em] text-rivals-gold">{t("bracket.ranking")}</p>
           <h2 className="mx-auto mt-3 max-w-2xl text-center font-display text-3xl font-black leading-tight tracking-tight md:text-5xl">
             {lang === "en" ? "Live Season 2 Ranking" : "Ranking en vivo · Temporada 2"}
           </h2>
@@ -448,7 +457,7 @@ function MatchCard({ m, teamById, lang, myTeamId, onCheckIn }: { m: Match; teamB
           {m.status === "approved" && (
             <Link
               href={`/report/${encodeURIComponent(m.id)}`}
-              className="soft-ring flex-1 rounded-full bg-gradient-to-r from-rivals-red to-rivals-gold px-3 py-1.5 text-center text-xs font-bold text-white transition hover:brightness-110"
+              className="soft-ring flex-1 rounded-full bg-gradient-to-r from-rivals-cyanDim via-rivals-cyan to-rivals-gold px-3 py-1.5 text-center text-xs font-bold text-white transition hover:brightness-110"
             >
               {lang === "en" ? "Report result" : "Reportar resultado"}
             </Link>

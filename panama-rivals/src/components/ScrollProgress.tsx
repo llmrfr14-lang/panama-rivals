@@ -29,10 +29,10 @@ export function ScrollProgress() {
 
   return (
     <>
-      {/* Top scroll-progress hairline — rivals red→gold */}
+      {/* Top scroll-progress hairline — RL cyan→gold→orange boost meter */}
       <div aria-hidden="true" className="fixed inset-x-0 top-0 z-50 h-0.5 bg-transparent">
         <div
-          className="h-full bg-gradient-to-r from-rivals-red via-rivals-gold to-rivals-red transition-[width] duration-100"
+          className="h-full bg-gradient-to-r from-rivals-cyan via-rivals-gold to-rivals-orange transition-[width] duration-100 shadow-[0_0_12px_rgba(70,215,255,0.8)]"
           style={{ width: `${progress * 100}%` }}
         />
       </div>

@@ -190,6 +190,8 @@ export default function Header() {
             ref={pillRef}
             className="pill-tilt mt-3 flex h-14 w-max max-w-[calc(100vw-2rem)] items-center gap-1.5 rounded-2xl border border-white/10 bg-[#0b111c]/70 px-3 shadow-[0_10px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[#0b111c]/45"
           >
+            {/* RL boost meter — animated cyan→gold→orange trail under the pill */}
+            <span aria-hidden="true" className="rl-nav-boost" />
           <Link
             href="/"
             onClick={() => setOpen(false)}

@@ -93,7 +93,7 @@ export function InstallBanner() {
             <button
               type="button"
               onClick={() => (deferred ? install() : setShowHowTo(true))}
-              className="soft-ring rounded-full bg-rivals-red px-4 py-1.5 text-xs font-bold text-white shadow-[0_4px_12px_rgba(230,57,70,0.35)] transition hover:brightness-110"
+              className="soft-ring rounded-full bg-rivals-orange px-4 py-1.5 text-xs font-bold text-white shadow-[0_4px_12px_rgba(255,122,47,0.35)] transition hover:brightness-110"
             >
               {en ? "Install app" : "Instalá la app"} 📲
             </button>

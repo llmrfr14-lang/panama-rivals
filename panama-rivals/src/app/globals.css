@@ -8,7 +8,7 @@
   /* Keyboard a11y — every interactive element gets a visible focus ring(no mouse-only outlines。 */
   :where(button, a, select, input, textarea, summary):focus-visible {
     outline: none;
-    box-shadow: 0  0  0  3px rgba(58,134,255,0.45);
+    box-shadow: 0  0  0  3px rgba(70,215,255,0.45);
     border-radius: 8px;
   }
 }
@@ -45,8 +45,8 @@
 
   .soft-ring:focus-visible {
     outline: none;
-    box-shadow: 0  0  0  3px rgba(58,134,255,0.35);
-    border-color: rgba(58,134,255,0.7);
+    box-shadow: 0  0  0  3px rgba(70,215,255,0.35);
+    border-color: rgba(70,215,255,0.7);
   }
 
   /* Magnetic 3D tilt for the floating nav pill (CSA-style cursor-follow) */
@@ -70,7 +70,7 @@
     position: absolute;
     inset:  0;
     pointer-events: none;
-    background: radial-gradient(320px 220px at var(--sx,50%)) var(--sy,50%), rgba(255,209,102,0.16), transparent 70%);
+    background: radial-gradient(320px 220px at var(--sx,50%)) var(--sy,50%), rgba(70,215,255,0.14), transparent 70%);
     mix-blend-mode: screen;
     opacity: 0;
     transition: opacity 0.35s ease;
@@ -106,9 +106,9 @@ a:active,
 
 body {
   background:
-    radial-gradient(1200px 800px at 15% -10%, rgba(58,134,255,0.14), transparent 60%),
-    radial-gradient(1000px 700px at 110% 15%, rgba(230,57,70,0.12), transparent 55%),
-    radial-gradient(900px 600px at 50% 110%, rgba(255,209,102,0.08), transparent 55%),
+    radial-gradient(1200px 800px at 15% -10%, rgba(70,215,255,0.13), transparent 60%),
+    radial-gradient(1000px 700px at 110% 15%, rgba(255,122,47,0.12), transparent 55%),
+    radial-gradient(900px 600px at 50% 110%, rgba(255,209,102,0.07), transparent 55%),
     #0b1018;
   background-attachment: fixed;
   color: #eef2f8;
@@ -129,7 +129,7 @@ select option:disabled {
 }
 
 ::selection {
-  background: rgba(58,134,255,0.35);
+  background: rgba(70,215,255,0.33);
 }
 
 ::-webkit-scrollbar {
@@ -152,9 +152,9 @@ select option:disabled {
 /* CSA-style floating ambient aura — slow drifting glow behind all content */
 .rivals-aura {
   background:
-    radial-gradient(42rem 42rem at 18% 22%, rgba(58,134,255,0.28), transparent 65%),
-    radial-gradient(36rem 36rem at 82% 30%, rgba(230,57,70,0.26), transparent 65%),
-    radial-gradient(40rem 40rem at 55% 110%, rgba(255,209,102,0.14), transparent 65%),
+    radial-gradient(42rem 42rem at 18% 22%, rgba(70,215,255,0.24), transparent 65%),
+    radial-gradient(36rem 36rem at 82% 30%, rgba(255,122,47,0.24), transparent 65%),
+    radial-gradient(40rem 40rem at 55% 110%, rgba(255,209,102,0.12), transparent 65%),
     linear-gradient(180deg, #0a0e16 0%, #070b12 100%);
   animation: rivals-aura-drift 26s ease-in-out infinite alternate;
   will-change: transform, background-position;
@@ -168,6 +168,77 @@ select option:disabled {
   100% {
     transform: translate3d(-2rem, 1rem, 0) scale(1.08);
     background-position: 5% 8%, 92% 12%, 45% 95%;
+  }
+}
+/* ══ ROCKET LEAGUE THEME ══ */
+
+/* Hexagonal arena-mesh texture — faint honeycomb laid over the whole page */
+.rivals-hex {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='56' viewBox='0 0 48 56'%3E%3Cpath d='M24 4L42 14v20L24 44 6 34V14z' fill='none' stroke='%2346d7ff' stroke-opacity='0.045' stroke-width='1'/%3E%3Cg stroke='%23ffffff' stroke-opacity='0.03' stroke-width='1'%3E%3Cpath d='M24 4L24 0M6 34L0 44M42 34l6 10'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 48px 56px;
+  opacity: 0.55;
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent);
+          mask-image: linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rivals-hex {
+    opacity: 0.4;
+  }
+}
+
+/* Diagonal hazard / checkered accent strip — a small flourish under section heads */
+.rivals-hazard {
+  height:  6px;
+  width:  64px;
+  border-radius: 9999px;
+  background: repeating-linear-gradient(-45deg, #46d7ff 0 6px, transparent 6px 12px),
+    repeating-linear-gradient(-45deg, #ff7a2f 0 6px, transparent 6px 12px);
+  background-size: auto, auto;
+  background-position: 0 0, 6px 0;
+  opacity: 0.5;
+}
+
+/* Team-color streak overline — pairs of cyan/orange bars flanking the kicker label */
+.rivals-kicker-line::before,
+.rivals-kicker-line::after {
+  content: "";
+  flex:  0 0 auto;
+  width: 26px;
+  height: 2px;
+  border-radius: 9999px;
+  opacity:  0.55;
+}
+.rivals-kicker-line::before {
+  background: linear-gradient(90deg, transparent, #46d7ff);
+}
+.rivals-kicker-line::after {
+  background: linear-gradient(90deg, #ff7a2f, transparent);
+}
+
+/* RL boost-meter trail — animated dot that zips along the nav underline */
+.rl-nav-boost {
+  position: absolute;
+  inset:  auto 0 0 0;
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, transparent, #46d7ff 30%, #ffd166 50%, #ff7a2f 70%, transparent);
+  background-size: 220% 100%;
+  animation: rivals-boost-sweep 7s linear infinite;
+  opacity:  0.85;
+}
+@keyframes rivals-boost-sweep {
+  from { background-position: 110% 0; }
+  to { background-position: -110% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rl-nav-boost {
+    animation: none;
+    opacity:  0.35;
   }
 }
 
@@ -291,8 +362,20 @@ html.light body {
 
 html.light .rivals-aura {
   background:
+    radial-gradient(42rem 42rem at 18% 22%, rgba(70,215,255,0.18), transparent 65%),
+    radial-gradient(36rem 36rem at 82% 30%, rgba(255,122,47,0.16), transparent 65%),
     linear-gradient(180deg, #e8eef6 0%, #dde6f0 100%);
-  opacity: 0.55;
+  opacity: 0.6;
+}
+
+html.light .rivals-hex {
+  opacity: 0.18;
+}
+
+html.light .rivals-kicker-line::before { background: linear-gradient(90deg, transparent, #1a9bd6); }
+html.light .rivals-kicker-line::after { background: linear-gradient(90deg, #d9531e, transparent); }
+html.light .rivals-hazard {
+  opacity: 0.4;
 }
 
 html.light .glass-card {
