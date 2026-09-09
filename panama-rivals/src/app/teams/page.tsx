@@ -5,12 +5,14 @@ import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { Division } from "@/lib/league";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import RankBadge from "@/components/RankBadge";
 
 const groupKeys = ["A", "B", "C", "D"];
 
 export default function TeamsPage() {
   const { lang } = useI18n();
   const { registrations } = useStore();
+  const approved = registrations.filter((r) => r.status === "approved");
   const [query, setQuery] = useState("");
 
   const q = query.trim().toLowerCase();
@@ -20,7 +22,7 @@ export default function TeamsPage() {
     r.captain.discord.toLowerCase().includes(q) ||
     r.captain.epicId.toLowerCase().includes(q) ||
     r.players.some((p) => (p.discord || "").toLowerCase().includes(q) || (p.epicId || "").toLowerCase().includes(q));
-  const results = q ? registrations.filter(matchFilter) : null;
+  const results = q ? approved.filter(matchFilter) : null;
 
   const divisions: { div: Division; label: string; filter: (r: { division?: Division }) => boolean }[] = [
     { div: "challenger", label: lang === "en" ? "Challenger · ≤ Champion 2" : "Challenger · ≤ Champion 2", filter: (r) => r.division === "challenger" || !r.division },
@@ -32,10 +34,10 @@ export default function TeamsPage() {
       <Breadcrumbs items={[{ label: lang === "en" ? "Teams" : "Equipos" }]} lang={lang} />
       <h1 className="font-display text-4xl font-black">{lang === "en" ? "Teams" : "Equipos"}</h1>
       <p className="mt-2 text-slate-400">
-        {lang === "en" ? `${registrations.length} teams registered` : `${registrations.length} equipos registrados`}
+        {lang === "en" ? `${approved.length} approved teams` : `${approved.length} equipos aceptados`}
       </p>
 
-      {registrations.length > 0 && (
+      {approved.length > 0 && (
         <div className="mt-6 max-w-md">
           <label className="sr-only" htmlFor="team-search">
             {lang === "en" ? "Search teams" : "Buscar equipos"}
@@ -61,7 +63,7 @@ export default function TeamsPage() {
         </div>
       )}
 
-      {registrations.length === 0 ? (
+      {approved.length === 0 ? (
         <div className="mt-16 mx-auto max-w-md glass-card glass-dashed rounded-3xl p-10 text-center">
           <span className="emoji text-4xl">🛡️</span>
           <p className="mt-4 font-display text-xl font-bold text-rivals-gold">
@@ -69,8 +71,8 @@ export default function TeamsPage() {
           </p>
           <p className="mt-2 text-sm text-slate-400">
             {lang === "en"
-              ? "Teams appear here once captains register and the group draw happens."
-              : "Los equipos aparecen aquí cuando los capitanes se registren y se sorteen los grupos."}
+              ? "Teams appear here once the admin approves them and the group draw happens."
+              : "Los equipos aparecen aquí cuando la admin los acepta y se sorteen los grupos."}
           </p>
         </div>
       ) : q ? (
@@ -93,13 +95,14 @@ export default function TeamsPage() {
               <div key={team.id} className="glass-card rounded-3xl p-5">
                 <p className="font-semibold text-rivals-gold">{team.teamName}</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Cap: {team.captain.discord || team.captain.epicId || "—"}
+                  Cap: {[team.captain.discord, team.captain.epicId].filter(Boolean).join(" · ") || "—"}
                 </p>
                 <div className="mt-3 space-y-1 text-sm text-slate-300">
                   {team.players.map((p, i) => (
                     <div key={i} className="flex items-center gap-2">
                       <span className="h-1.5 w-1.5 rounded-full bg-rivals-blue" />
-                      {p.discord || p.epicId || "NA"} · {p.peakRank || ""}
+                      <span className="font-medium">{p.epicId || p.discord || "NA"}</span>
+                      <RankBadge rank={p.peakRank} lang={lang} />
                     </div>
                   ))}
                 </div>
@@ -109,7 +112,7 @@ export default function TeamsPage() {
         )
       ) : (
         divisions.map(({ div, label, filter }) => {
-          const divTeams = registrations.filter(filter);
+          const divTeams = approved.filter(filter);
           if (divTeams.length === 0) return null;
           return (
             <section key={div} className="mt-12">
@@ -128,13 +131,14 @@ export default function TeamsPage() {
                           <div key={team.id} className="glass-card rounded-3xl p-4">
                             <p className="font-semibold">{team.teamName}</p>
                             <p className="mt-1 text-xs text-slate-500">
-                              Cap: {team.captain.discord || team.captain.epicId || "—"}
+                              Cap: {[team.captain.discord, team.captain.epicId].filter(Boolean).join(" · ") || "—"}
                             </p>
                             <div className="mt-3 space-y-1 text-sm text-slate-300">
                               {team.players.map((p, i) => (
                                 <div key={i} className="flex items-center gap-2">
                                   <span className="h-1.5 w-1.5 rounded-full bg-rivals-blue" />
-                                  {p.discord || p.epicId || "NA"} · {p.peakRank || ""}
+                                  <span className="font-medium">{p.epicId || p.discord || "NA"}</span>
+                                  <RankBadge rank={p.peakRank} lang={lang} />
                                 </div>
                               ))}
                             </div>
