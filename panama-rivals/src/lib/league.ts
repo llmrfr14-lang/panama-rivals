@@ -4,10 +4,22 @@ export type Division = "challenger" | "elite";
 
 /** Split a team's peak rank into a division: Elite = Champion 3 and above. */
 export function divisionForRank(rank: string | undefined | null): Division {
-  const r = (rank || "").toLowerCase().replace(/\s+/g, "");
-  // Any explicit Champion 3+ token lands in Elite.
+  // Normalize: lowercase, strip accents and any punctuation/spaces ("Campeón III"/"D3." → "campeoniii").
+  const r = (rank || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+  if (!r) return "challenger";
+  // Any explicit Champion 3+ token lands in Elite (English, Spanish o siglas).
 
-  const eliteHints = ["c3", "c4", "c5", "c6", "c7", "grand", "gc", "ssl", "supersonic", "champion 3"];
+  const eliteHints = [
+    // Inglés: Champion 3+, Champ III, Grand Champion, Supersonic Legend.
+    "champion3", "championiii", "champ3", "champiii", "grandchampion", "grandchamp",
+    "supersonic", "legendary",
+    // Español: Campeón 3+, Campeón III, Gran Campeón, Leyenda Supersónica.
+
+    "campeon3", "campeoniii", "camp3", "campiii", "grancampeon", "grancamp",
+    "supersonico", "supersonica", "leyendasupersonica", "legendario",
+    // Siglas: C3+, GC, SSL (Supersonic Legend),
+    "c3", "c4", "c5", "c6", "c7", "c8", "ciii", "gc", "ssl",
+  ];
   if (eliteHints.some((h) => r.includes(h))) return "elite";
   return "challenger";
 }

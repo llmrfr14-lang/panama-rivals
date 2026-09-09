@@ -368,14 +368,16 @@ export default function RegisterPage() {
                   </label>
                   <label className="block">
                     <span className="text-xs text-slate-400">
-                      {en ? "Peak rank (e.g.: Diamond 2, D1, Champ 3...)" : "Rank máximo (ej: Diamante 2, D1, Champ 3...)"}
+                      {en
+                        ? "Peak rank (e.g.: Diamond 2, D1, Champ 3, Champion III, GC...)"
+                        : "Rank máximo (ej: Diamante 2, D1, Camp 3, Campeón III, GC...)"}
                     </span>
                     <input
                       value={p.peakRank}
                       onChange={(e) => setPlayer(i, "peakRank", e.target.value)}
                       required={i < 2}
                       className={inputCls}
-                      placeholder={i === 2 ? "NA / vacío" : en ? "E.g.: Diamond 2" : "Ej: Diamante 2"}
+                      placeholder={i === 2 ? "NA / vacío" : en ? "E.g.: Diamond 2 / Champ 3" : "Ej: Diamante 2 / Camp 3"}
                     />
                   </label>
                 </div>
