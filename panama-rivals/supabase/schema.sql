@@ -23,7 +23,7 @@ alter table registrations alter column captain type jsonb using case
   else jsonb_build_object('discord', btrim(captain::text))
 end;
 
--- Matches: group stage + knockout bracket (QF/SF/final), with check-in and FF fields
+-- Matches: group stage + knockout bracket (QF/SF/final),with FF no-show results
 create table if not exists matches (
   id text primary key,
   stage text not null,
@@ -35,16 +35,12 @@ create table if not exists matches (
   status text not null default 'scheduled',
   stats jsonb not null default '[]',
   scheduled_at bigint,
-  checked_in text,
   ff_winner text
 );
 
--- Idempotent upgrades for the matches table (bracket/check-in/FF columns)
+-- Idempotent upgrades for the matches table (bracket/FF columns)
 alter table matches add column if not exists scheduled_at bigint;
-alter table matches add column if not exists checked_in text;
 alter table matches add column if not exists ff_winner text;
-alter table matches add column if not exists ff_deadline bigint;
-
 
 create table if not exists submissions (
   id text primary key,
