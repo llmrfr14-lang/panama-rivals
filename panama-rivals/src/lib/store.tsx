@@ -59,13 +59,12 @@ type Store = {
   teamById: (id: string | null) => Team | null;
   playerById: (id: string) => Player | undefined;
   rosterOf: (teamId: string | null) => Player[];
-  reportToken: (matchId: string, side: "home" | "away") => string;
-  isValidReportToken: (matchId: string, token: string) => boolean;
+  
   resetData: () => void;
 };
 
 const StoreContext = createContext<Store | null>(null);
-// v3: Season 2 pipeline — registrations, draw, schedule, token-gated report, approval.
+// v3: Season 2 pipeline — registrations, draw, schedule, report, approval.
 const LS_KEY = "panama-rivals-v3";
 
 type Persisted = {
@@ -76,11 +75,6 @@ type Persisted = {
   bracketRegen: string[];
 };
 
-function shortToken(str: string) {
-  let h = 5381;
-  for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
-  return Math.abs(h).toString(36).slice(0, 6);
-}
 
 function groupMatchesFor(registrations: Registration[], groupId: string): Match[] {
   const ids = registrations
@@ -536,15 +530,6 @@ const bracketWinner = (m: Match): string | null => {
     return reg.players.map((p) => ({ id: p.discord || p.epicId, handle: [p.discord, p.epicId].filter(Boolean).join(" / "), teamId: reg.id }));
   };
 
-  // NOTE: tokens derive from matchId only. Fine while local; once Supabase
-  // is live, anyone can compute them. Real captain auth needs Discord OAuth
-  // or server-issued per-match secrets — see README before Season 2 go-live.
-  const reportToken: Store["reportToken"] = (matchId, side) => shortToken(`${matchId}:${side}:cap`);
-
-  const isValidReportToken: Store["isValidReportToken"] = (matchId, token) => {
-    const t = token.trim().toLowerCase();
-    return t === reportToken(matchId, "home") || t === reportToken(matchId, "away");
-  };
 
   const resetData = () => {
     localStorage.removeItem(LS_KEY);
@@ -571,8 +556,6 @@ const bracketWinner = (m: Match): string | null => {
         teamById,
         playerById,
         rosterOf,
-        reportToken,
-        isValidReportToken,
         resetData,
       }}
     >

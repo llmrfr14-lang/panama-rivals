@@ -22,13 +22,11 @@ export default function AdminPage() {
     assignGroup,
     generateSchedule,
     generateBracket,
-    reportToken,
     rosterOf,
   } = useStore();
 
   const pending = submissions.filter((s) => s.status === "pending");
   const processed = submissions.filter((s) => s.status !== "pending");
-  const groupMatches = matches.filter((m) => m.stage === "group");
   const unassigned: Record<Division, number> = { challenger: 0, elite: 0 };
   const anyRegistrations = registrations.length > 0;
   for (const r of registrations) {
@@ -402,30 +400,6 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {(groupMatches.length > 0 || matches.some((m) => m.stage !== "group" && m.status === "scheduled")) && (
-        <>
-          <h2 className="mt-10 font-display text-2xl font-bold text-rivals-gold">
-            Links de reporte para capitanes
-          </h2>
-          <p className="mt-1 text-xs text-slate-500">
-            Copia el link y mándaselo por DM al capitán de cada equipo — solo con ese link pueden reportar.
-          </p>
-          <div className="mt-4 space-y-2 text-xs">
-            {[...groupMatches, ...matches.filter((m) => m.stage !== "group" && m.status === "scheduled")].map((m) => (
-              <div key={m.id} className="rounded border border-rivals-border px-3 py-2">
-                <p className="font-semibold text-slate-200">
-                  {teamById(m.homeTeamId)?.name} vs {teamById(m.awayTeamId)?.name}{" "}
-                  <span className="text-slate-500">({m.groupId})</span>
-                </p>
-                <p className="mt-1 font-mono text-slate-400">
-                  Home: /report/{m.id}?token={reportToken(m.id, "home")} · Away: /report/{m.id}
-                  ?token={reportToken(m.id, "away")}
-                </p>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
 
       <h2 className="mt-10 font-display text-2xl font-bold text-rivals-gold">{t("admin.pending")}</h2>
       <div className="mt-4 space-y-3">

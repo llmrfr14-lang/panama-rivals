@@ -35,12 +35,3 @@ Without these keys the site still works, but data stays per-browser (localStorag
 1. Share `/register` link in Discord
 2. In `/admin`: assign each registered team to a group (A/B = 5 teams, C/D = 4)
 3. Click "Generar calendario de grupos"
-4. DM each captain their match report link from the admin page
-5. On tournament day: captains report → you approve → standings/stats update live
-
-## ⚠️ Known limitation
-
-Report tokens are derived from the match ID — anyone who reads the client code can
-compute them. For a casual community league with admin approval as the real gate,
-this is acceptable. If you need hard security, add Discord OAuth (Supabase Auth
-supports it natively) and tie submissions to the captain's Discord identity.
