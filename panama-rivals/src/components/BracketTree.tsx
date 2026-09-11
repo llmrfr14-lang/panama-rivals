@@ -4,22 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { Match } from "@/lib/types";
 
-const CHECK_IN_MS = 15 * 60 * 1000;
-
-function fmtClock(ms: number) {
-  const total = Math.max(0, Math.ceil(ms / 1000));
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-function MatchCard({ m, teamById, myTeam, now, onCheckIn, innerRef }: {
+function MatchCard({ m, teamById, myTeam, now, innerRef }: {
   m: Match;
-  teamById:((id: string | null) => { name: string } | null);
+   teamById:((id: string | null) => { name: string } | null);
   myTeam: string;
-  now: number;
-  onCheckIn:((matchId: string, teamId: string) => void);
-  innerRef?:(el: HTMLDivElement | null) => void;
+   now: number;
+   innerRef?:(el: HTMLDivElement | null) => void;
 }) {
   const { t } = useI18n();
   const home = teamById(m.homeTeamId)?.name ?? "TBD";
@@ -30,16 +20,6 @@ function MatchCard({ m, teamById, myTeam, now, onCheckIn, innerRef }: {
   const awayWon = m.status === "approved" ? m.awayScore > m.homeScore : m.status === "ff" ? m.ffWinner === m.awayTeamId : false;
   const resolved = m.status === "approved" || m.status === "ff";
 
-  const checked = m.checkedIn;
-  const [popped, setPopped] = useState<string | null>(null);
-  useEffect(() => {
-    if (!checked) return;
-    setPopped(checked);
-    const td = window.setTimeout(() => setPopped(null), 900);
-    return () => window.clearTimeout(td);
-  }, [checked]);
-  const deadline = m.scheduledAt ? m.scheduledAt + CHECK_IN_MS : null;
-  const open = Boolean(m.scheduledAt && m.scheduledAt <= now && (m.status === "scheduled" || m.status === "checked_in" || m.status === "declined"));
   const scheduledUpcoming = Boolean(m.scheduledAt && m.scheduledAt > now) && !resolved;
   
 
@@ -52,7 +32,7 @@ function MatchCard({ m, teamById, myTeam, now, onCheckIn, innerRef }: {
   return (
     <div
       ref={innerRef ? (el) => innerRef(el) : undefined}
-      className={`rounded-lg border p-3 ${isMine ? "border-rivals-gold/60 bg-rivals-gold/5" : "border-rivals-border/60 bg-rivals-bg/60"} ${popped ? "checkin-ring" : ""}`}
+      className={`rounded-lg border p-3 ${isMine ? "border-rivals-gold/60 bg-rivals-gold/5" : "border-rivals-border/60 bg-rivals-bg/60"}`}
     >
       <div className="flex items-center justify-between gap-2">
         <p className="min-w-0 flex-1 truncate text-sm">
@@ -73,36 +53,10 @@ function MatchCard({ m, teamById, myTeam, now, onCheckIn, innerRef }: {
         </p>
       ) : (
         <div className="mt-2 space-y-2">
-          {open && (
-            <>
-              {(m.homeTeamId || m.awayTeamId) && (
-                <div className="flex gap-2">
-                  {[m.homeTeamId, m.awayTeamId].map((tid) => tid && (
-                    <button
-                      key={tid}
-                      onClick={() => onCheckIn(m.id, tid)}
-                      disabled={checked === tid || m.status === "ff"}
-                      className={`flex-1 truncate rounded-full px-3 py-1.5 text-xs font-bold transition ${checked === tid ? (popped === tid ? "bg-emerald-500/90 text-white checkin-pop" : "bg-emerald-500/90 text-white") : "bg-rivals-blue text-white hover:brightness-110"}`}
-                    >
-                      {checked === tid ? "✓ " + (teamById(tid)?.name ?? "Team") + " listo" : "✓ " + (teamById(tid)?.name ?? "Team")}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {deadline && deadline > now && (
-                <p className="text-xs text-slate-400">
-                  ⏳ {t("bracket.ffIn")} {fmtClock(deadline - now)}
-                </p>
-              )}
-            </>
-          )}
           {scheduledUpcoming && m.scheduledAt && (
             <p className="text-xs text-slate-500">
-{t("bracket.startsAt")} {new Date(m.scheduledAt!).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              {t("bracket.startsAt")} {new Date(m.scheduledAt!).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </p>
-          )}
-          {m.status === "checked_in" && !open && (
-            <p className="text-xs text-emerald-400">{t("bracket.checkInDone")}</p>
           )}
           {m.status === "declined" && (
             <p className="text-xs text-slate-500">{t("bracket.declined")}</p>
@@ -121,15 +75,13 @@ function bracketWinner(m: Match): string | null {
   return null;
 }
 
-function RoundColumn({ title, matches, teamById, myTeam, now, onCheckIn, cardRefs, gap }: {
+function RoundColumn({ title, matches, teamById, myTeam, now, cardRefs, gap }: {
   title: string;
-  matches: Match[];
-  teamById:((id: string | null) => { name: string } | null);
+   matches: Match[];
+   teamById:((id: string | null) => { name: string } | null);
   myTeam: string;
-  now: number;
-
-  onCheckIn:((matchId: string, teamId: string) => void);
-  cardRefs?: ((el: HTMLDivElement | null) => void)[];
+   now: number;
+   cardRefs?: ((el: HTMLDivElement | null) => void)[];
   gap: string;
 }) {
   return (
@@ -143,7 +95,6 @@ function RoundColumn({ title, matches, teamById, myTeam, now, onCheckIn, cardRef
             teamById={teamById}
             myTeam={myTeam}
             now={now}
-            onCheckIn={onCheckIn}
             innerRef={cardRefs?.[i] ? (el) => cardRefs![i](el) : undefined}
           />
         ))}
@@ -154,15 +105,12 @@ function RoundColumn({ title, matches, teamById, myTeam, now, onCheckIn, cardRef
 
 type Connector = { key: string; d: string; soft: boolean };
 
-export function BracketTree({ qf, sf, fin, teamById, myTeam, now, onCheckIn, titles }: {
+export function BracketTree({ qf, sf, fin, teamById, myTeam, now, titles }: {
   qf: Match[]; sf: Match[]; fin: Match | null | undefined;
   teamById:((id: string | null) => { name: string } | null);
   myTeam: string;
-  now: number;
-  onCheckIn:((matchId: string, teamId: string) => void);
-
-
-  titles: { qf: string; sf: string; fin: string };
+   now: number;
+   titles: { qf: string; sf: string; fin: string };
 }) {
   const { t } = useI18n();
   const needsQf = qf.length > 0;
@@ -273,7 +221,6 @@ export function BracketTree({ qf, sf, fin, teamById, myTeam, now, onCheckIn, tit
                   teamById={teamById}
                   myTeam={myTeam}
                   now={now}
-                  onCheckIn={onCheckIn}
                   gap="gap-4 md:gap-6"
                   cardRefs={qf.map((_, i) => (el) => { qfRefs.current[i] = el; })}
                 />
@@ -290,7 +237,6 @@ export function BracketTree({ qf, sf, fin, teamById, myTeam, now, onCheckIn, tit
                   teamById={teamById}
                   myTeam={myTeam}
                   now={now}
-                  onCheckIn={onCheckIn}
                   gap="gap-12 md:gap-16"
                   cardRefs={sf.map((_, i) => (el) => { sfRefs.current[i] = el; })}
                 />
@@ -307,7 +253,6 @@ export function BracketTree({ qf, sf, fin, teamById, myTeam, now, onCheckIn, tit
                   teamById={teamById}
                   myTeam={myTeam}
                   now={now}
-                  onCheckIn={onCheckIn}
                   gap="gap-0"
                   cardRefs={[(el) => { finRef.current = el; }]}
                 />

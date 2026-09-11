@@ -22,7 +22,7 @@ export type StatLine = {
   shots: number;
 };
 
-export type MatchStatus = "scheduled" | "pending_review" | "approved" | "declined" | "ff" | "checked_in";
+export type MatchStatus = "scheduled" | "pending_review" | "approved" | "declined" | "ff";
 
 export type Stage = "group" | "qf" | "sf" | "f";
 
@@ -36,14 +36,10 @@ export type Match = {
   awayScore: number;
   status: MatchStatus;
   stats: StatLine[];
-  /** Knockout only: epoch ms the match is scheduled to start (check-in opens here). */
+  /** Knockout only: epoch ms the match is scheduled to start. */
   scheduledAt?: number;
-  /** Knockout only: which team already checked in. */
-  checkedIn?: string | null;
   /** Knockout only: team that won by forfeit (no-show. */
   ffWinner?: string | null;
-  /** Knockout only: epoch ms the FF deadline (scheduledAt +  15 min). */
-  ffDeadline?: number;
 };
 
 export type SubmissionStatus = "pending" | "approved" | "declined";

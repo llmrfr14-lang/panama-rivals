@@ -22,7 +22,6 @@ export default function AdminPage() {
     assignGroup,
     generateSchedule,
     generateBracket,
-    applyCheckInDeadlines,
     reportToken,
     rosterOf,
   } = useStore();
@@ -284,10 +283,10 @@ export default function AdminPage() {
         </button>
       )}
 
-      <h2 className="mt-10 font-display text-2xl font-bold text-rivals-gold">Bracket & Check-in</h2>
+      <h2 className="mt-10 font-display text-2xl font-bold text-rivals-gold">Bracket</h2>
       <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
         <p className="text-sm text-slate-400">
-          Se genera automáticamente al aprobar todos los resultados de grupo — o fuérzalo aquí. El check-in abre a la hora del partido y el que no se presente pierde por FF tras 15 min.
+          Se genera automáticamente al aprobar todos los resultados de grupo — o fuérzalo aquí.
         </p>
         <div className="mt-3 flex flex-wrap gap-3">
           {(["challenger", "elite"] as const).map((d) => (
@@ -308,20 +307,14 @@ export default function AdminPage() {
               className="soft-ring rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-sm backdrop-blur-md transition"
             />
           </label>
-          <button
-            onClick={applyCheckInDeadlines}
-            className="soft-ring rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-slate-200 transition hover:bg-white/15"
-          >
-            ⏳ Aplicar deadlines FF ahora
-          </button>
         </div>
       </div>
 
-      {/* ── RESULTADOS / CHECK-IN EN VIVO ── */}
+      {/* ── RESULTADOS EN VIVO ── */}
       <div className="mt-10">
-        <h2 className="font-display text-2xl font-bold text-rivals-gold">Resultados · Check-in en vivo</h2>
+        <h2 className="font-display text-2xl font-bold text-rivals-gold">Resultados en vivo</h2>
         <p className="mt-1 text-xs text-slate-500">
-          Se actualiza solo (realtime Supabase)— quién ya reportó, quién falta por marcar y el estado del check-in del bracket.
+          Se actualiza solo(realtime Supabase)— quién ya reportó y quién falta por marcar.
 
         </p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -331,14 +324,6 @@ export default function AdminPage() {
             const reported = groupMs.filter((m) => m.status === "approved" || m.status === "ff");
             const missing = groupMs.filter((m) => m.status === "scheduled");
             const reviewing = groupMs.filter((m) => m.status === "pending_review");
-            const checks = ko.filter((m) => m.checkedIn);
-            const resolved = (m: Match) => m.status === "approved" || m.status === "ff";
-            const stageLabel = (s: string) => (s === "qf" ? "Cuartos" : s === "sf" ? "Semis" : "Final");
-            const statusLabel = (m: Match) =>
-              m.status === "scheduled" ? "⏳ espera" :
-              m.status === "checked_in" ? "🟡 listo para jugar" :
-              m.status === "pending_review" ? "📤 en revisión" :
-              m.status === "approved" ? "✅ aprobado" : "🏆 FF";
             return (
               <div key={d} className="glass-card rounded-3xl p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -348,9 +333,6 @@ export default function AdminPage() {
                   <div className="flex flex-wrap gap-1.5 text-[10px] font-bold">
                     <span className="rounded-full bg-white/5 px-2 py-0.5 text-slate-300">
                       Grupos: {reported.length}/{groupMs.length} reportados
-                    </span>
-                    <span className="rounded-full bg-white/5 px-2 py-0.5 text-slate-300">
-                      Bracket: {checks.length}/{ko.length} check-in
                     </span>
                   </div>
                 </div>
@@ -385,75 +367,6 @@ export default function AdminPage() {
                         ))}
                       </ul>
                     )}
-                  </div>
-                )}
-
-                {ko.length > 0 && (
-                  <div className="mt-3">
-                    <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                      Bracket — check-in en vivo
-                    </p>
-                    <ul className="mt-1.5 space-y-1.5 text-xs">
-                      {ko.map((m) => {
-                        const done = resolved(m);
-                        const homeDone = done && m.homeScore > m.awayScore || (m.status === "ff" && m.ffWinner === m.homeTeamId);
-                        const awayDone = done && m.awayScore > m.homeScore || (m.status === "ff" && m.ffWinner === m.awayTeamId);
-                        return (
-                          <li key={m.id} className="rounded-xl border border-white/5 bg-white/3 px-2.5 py-2">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-bold uppercase tracking-widest text-slate-400">
-                                {stageLabel(m.stage)}
-                              </span>
-                              <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-300">
-                                {statusLabel(m)}
-                              </span>
-                            </div>
-                            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                              <span
-                                className={
-                                  m.homeTeamId === null
-                                    ? "text-slate-600"
-                                    : m.checkedIn === m.homeTeamId
-                                      ? "font-semibold text-emerald-400"
-                                      : homeDone
-                                        ? "font-bold text-rivals-gold"
-                                        : m.status === "approved" || m.status === "pending_review" || m.status === "ff"
-                                          ? "text-slate-400"
-                                          : "font-medium text-amber-300"
-                                }
-                              >
-                                {m.homeTeamId === null
-                                  ? "TBD"
-                                  : `${m.checkedIn === m.homeTeamId ? "✓ " : ""}${teamById(m.homeTeamId)?.name ?? "?"}`}
-                              </span>
-                              <span className="text-slate-600">vs</span>
-                              <span
-                                className={
-                                  m.awayTeamId === null
-                                    ? "text-slate-600"
-                                    : m.checkedIn === m.awayTeamId
-                                      ? "font-semibold text-emerald-400"
-                                      : awayDone
-                                        ? "font-bold text-rivals-gold"
-                                        : m.status === "approved" || m.status === "pending_review" || m.status === "ff"
-                                          ? "text-slate-400"
-                                          : "font-medium text-amber-300"
-                                }
-                              >
-                                {m.awayTeamId === null
-                                  ? "TBD"
-                                  : `${m.checkedIn === m.awayTeamId ? "✓ " : ""}${teamById(m.awayTeamId)?.name ?? "?"}`}
-                              </span>
-                              {(m.status === "scheduled" || m.status === "checked_in") && m.checkedIn === null && (
-                                <span className="hidden text-[10px] font-bold uppercase tracking-widest text-amber-400 sm:inline">
-                                  ninguno marcó
-                                </span>
-                              )}
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
                   </div>
                 )}
 

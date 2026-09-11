@@ -14,7 +14,7 @@ const divKey = "pr-div";
 
 export default function BracketPage() {
   const { t, lang } = useI18n();
-  const { matches, teamById, registrations, checkInTeam, hydrated } = useStore();
+  const { matches, teamById, registrations, hydrated } = useStore();
   const [div, setDiv] = useState<Division>(() => {
     if (typeof window === "undefined") return "challenger";
     const saved = window.localStorage.getItem(divKey) as Division | null;
@@ -134,7 +134,6 @@ export default function BracketPage() {
             teamById={teamById}
             myTeam={myTeam}
             now={now}
-            onCheckIn={checkInTeam}
             titles={{ qf: t("div.qf"), sf: t("div.semis"), fin: t("div.final") }}
           />
         </div>

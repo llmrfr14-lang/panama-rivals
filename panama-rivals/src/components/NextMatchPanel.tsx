@@ -9,7 +9,7 @@ const myTeamKey = "pr-my-team";
 
 export default function NextMatchPanel({ division, titleLabel }: { division: Division; titleLabel: string }) {
   const { t } = useI18n();
-  const { matches, registrations, checkInTeam, teamById } = useStore();
+  const { matches, registrations, teamById } = useStore();
   const [myTeam, setMyTeam] = useState("");
   const [now, setNow] = useState(Date.now());
 
@@ -40,7 +40,7 @@ export default function NextMatchPanel({ division, titleLabel }: { division: Div
     if (!myTeam) return null;
     return matches
       .filter((m) => (m.homeTeamId === myTeam || m.awayTeamId === myTeam) && m.status !== "approved" && m.status !== "ff")
-      .filter((m) => (m.scheduledAt ?? Number.MAX_SAFE_INTEGER) >= now || m.status !== "checked_in")
+      .filter((m) => (m.scheduledAt ?? Number.MAX_SAFE_INTEGER) >= now)
       .sort((a, b) => (a.scheduledAt ?? Number.MAX_SAFE_INTEGER) - (b.scheduledAt ?? Number.MAX_SAFE_INTEGER))
       .find(() => true);
   }, [matches, myTeam, now]);
@@ -59,8 +59,6 @@ export default function NextMatchPanel({ division, titleLabel }: { division: Div
     return h >  0 ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}`;
   };
 
-  const checked = nextMatch?.checkedIn;
-  const open = Boolean(nextMatch?.scheduledAt && nextMatch.scheduledAt <= now);
   const home = nextMatch ? teamById(nextMatch.homeTeamId)?.name ?? "TBD" : "";
   const away = nextMatch ? teamById(nextMatch.awayTeamId)?.name ?? "TBD" : "";
 
@@ -76,9 +74,7 @@ export default function NextMatchPanel({ division, titleLabel }: { division: Div
               </p>
               {nextMatch.scheduledAt && (
                 <p className="mt-1 font-mono text-sm text-slate-300">
-                  {open
-                    ? t("bracket.ffIn") + " " + fmtClock((nextMatch.scheduledAt + 15 * 60 * 1000) - now)
-                    : t("bracket.startsAt") + " " + fmtClock(nextMatch.scheduledAt - now)}
+                  {t("bracket.startsAt")} {" "}{fmtClock(nextMatch.scheduledAt - now)}
                 </p>
               )}
             </>
@@ -104,23 +100,6 @@ export default function NextMatchPanel({ division, titleLabel }: { division: Div
           ))}
         </select>
       </div>
-
-      {nextMatch && open && (nextMatch.status === "scheduled" || nextMatch.status === "checked_in" || nextMatch.status === "declined") && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {[nextMatch.homeTeamId, nextMatch.awayTeamId].map((tid) => tid && (
-            <button
-              key={tid}
-              onClick={() => checkInTeam(nextMatch.id, tid)}
-              disabled={checked === tid}
-              className={`soft-ring rounded-full px-4 py-2 text-sm font-bold transition ${checked === tid ? "bg-emerald-500/90 text-white" : "bg-rivals-blue text-white hover:brightness-110"}`}
-            >
-              {checked === tid
-                ? "✓ " + (teamById(tid)?.name ?? "Team") + " " + t("bracket.teamReady")
-                : "✓ " + (teamById(tid)?.name ?? "Team")}
-            </button>
-          ))}
-        </div>
-      )}
 
       {gameCount >  1 && (
         <p className="mt-3 text-xs text-slate-500">

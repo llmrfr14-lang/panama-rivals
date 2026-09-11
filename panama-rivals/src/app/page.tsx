@@ -28,7 +28,7 @@ const stats = [
 
 export default function Home() {
   const { t, lang } = useI18n();
-  const { registrations, matches, teamById, checkInTeam } = useStore();
+  const { registrations, matches, teamById } = useStore();
   const [myTeamId, setMyTeamId] = useState<string | null>(null);
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -302,7 +302,7 @@ export default function Home() {
             </div>
             <div className="-mx-4 mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 md:pb-0">
               {upcoming.map((m) => (
-                <MatchCard key={m.id} m={m} teamById={teamById} lang={lang} myTeamId={myTeamId} onCheckIn={checkInTeam} />
+                <MatchCard key={m.id} m={m} teamById={teamById} lang={lang} myTeamId={myTeamId} />
               ))}
             </div>
           </Reveal>
@@ -413,7 +413,7 @@ const STAGE_LABELS: Record<Stage, { es: string; en: string }> = {
   f: { es: "Final", en: "Final" },
 };
 
-function MatchCard({ m, teamById, lang, myTeamId, onCheckIn }: { m: Match; teamById: (id: string | null) => { name: string } | null; lang: string; myTeamId: string | null; onCheckIn: (matchId: string, teamId: string) => void }) {
+function MatchCard({ m, teamById, lang, myTeamId }: { m: Match; teamById: (id: string | null) => { name: string } | null; lang: string; myTeamId: string | null }) {
   const home = teamById(m.homeTeamId);
   const away = teamById(m.awayTeamId);
   const when = new Date(m.scheduledAt ?? 0);
@@ -452,27 +452,13 @@ function MatchCard({ m, teamById, lang, myTeamId, onCheckIn }: { m: Match; teamB
       <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-white/10">
         <div className="h-full w-0 rounded-full bg-gradient-to-r from-rivals-blue to-rivals-gold" />
       </div>
-      {myTeamId && (m.homeTeamId === myTeamId || m.awayTeamId === myTeamId) && (
-        <div className="mt-3 flex gap-2">
-          {m.status === "approved" && (
-            <Link
-              href={`/report/${encodeURIComponent(m.id)}`}
-              className="soft-ring flex-1 rounded-full bg-gradient-to-r from-rivals-cyanDim via-rivals-cyan to-rivals-gold px-3 py-1.5 text-center text-xs font-bold text-white transition hover:brightness-110"
-            >
-              {lang === "en" ? "Report result" : "Reportar resultado"}
-            </Link>
-          )}
-          {(m.status === "scheduled" || m.status === "checked_in") && m.checkedIn !== myTeamId && (
-            <button
-              onClick={() => onCheckIn(m.id, myTeamId)}
-              className="soft-ring flex-1 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-300 transition hover:bg-emerald-500/20"
-            >
-              {m.checkedIn === m.homeTeamId || m.checkedIn === m.awayTeamId
-                ? (lang === "en" ? "Check in now!" : "¡Check-in ahora!")
-                : (lang === "en" ? "Check in" : "Check-in")}
-            </button>
-          )}
-        </div>
+      {myTeamId && (m.homeTeamId === myTeamId || m.awayTeamId === myTeamId) && m.status === "approved" && (
+        <Link
+          href={`/report/${encodeURIComponent(m.id)}`}
+          className="soft-ring mt-3 flex-1 rounded-full bg-gradient-to-r from-rivals-cyanDim via-rivals-cyan to-rivals-gold px-3 py-1.5 text-center text-xs font-bold text-white transition hover:brightness-110"
+        >
+          {lang === "en" ? "Report result" : "Reportar resultado"}
+        </Link>
       )}
     </div>
   );

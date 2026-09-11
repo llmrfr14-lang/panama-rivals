@@ -45,8 +45,6 @@ type Store = {
   deleteRegistration: (registrationId: string) => void;
   generateSchedule: () => void;
   generateBracket: (division: Division, startAt?: number) => void;
-  checkInTeam: (matchId: string, teamId: string) => void;
-  applyCheckInDeadlines: () => void;
   submitResult:(
     matchId: string,
     submittedBy: string,
@@ -140,9 +138,7 @@ function matchFromRow(r: any): Match {
     status: r.status,
     stats: r.stats ?? [],
     scheduledAt: r.scheduled_at ?? undefined,
-    checkedIn: r.checked_in ?? null,
     ffWinner: r.ff_winner ?? null,
-    ffDeadline: r.ff_deadline ?? undefined,
   };
 }
 function subFromRow(r: any): Submission {
@@ -278,23 +274,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [hydrated, state.matches, state.registrations, state.bracketRegen]);
 
 
-  // Check-in FF deadline sweep — run on load and every 15s so no-shows auto-loss.
-
-  useEffect(() => {
-    if (!hydrated) return;
-    applyCheckInDeadlines();
-    const id = setInterval(applyCheckInDeadlines, 15 * 1000);
-    return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated]);
-
   const upsertReg = (r: Registration) => {
     if (!sb) return;
     sb.from("registrations").upsert({ id: r.id, team_name: r.teamName, captain: r.captain, players: r.players, division: r.division ?? "challenger", group_id: r.groupId, status: r.status ?? "pending", created_at: r.createdAt }).then(() => {}, (e) => console.error("supabase upsert failed:", e));
   };
   const upsertMatch = (m: Match) => {
     if (!sb) return;
-    sb.from("matches").upsert({ id: m.id, stage: m.stage, group_id: m.groupId ?? null, home_team_id: m.homeTeamId, away_team_id: m.awayTeamId, home_score: m.homeScore, away_score: m.awayScore, status: m.status, stats: m.stats, scheduled_at: m.scheduledAt ?? null, checked_in: m.checkedIn ?? null, ff_winner: m.ffWinner ?? null, ff_deadline: m.ffDeadline ?? null }).then(() => {}, (e) => console.error("supabase upsert failed:", e));
+    sb.from("matches").upsert({ id: m.id, stage: m.stage, group_id: m.groupId ?? null, home_team_id: m.homeTeamId, away_team_id: m.awayTeamId, home_score: m.homeScore, away_score: m.awayScore, status: m.status, stats: m.stats, scheduled_at: m.scheduledAt ?? null, ff_winner: m.ffWinner ?? null }).then(() => {}, (e) => console.error("supabase upsert failed:", e));
   };
   const upsertSub = (s: Submission) => {
     if (!sb) return;
@@ -433,7 +419,6 @@ const bracketWinner = (m: Match): string | null => {
           status: "scheduled",
           stats: [],
           scheduledAt: at + i * 20 * 60 * 1000,
-          checkedIn: null,
           ffWinner: null,
         });
       };
@@ -463,59 +448,6 @@ const bracketWinner = (m: Match): string | null => {
 
 
 
-  const checkInTeam: Store["checkInTeam"] = (matchId, teamId) => {
-    setState((s) => {
-      const next = s.matches.map((m) => {
-        if (m.id !== matchId) return m;
-        const marked = { ...m, checkedIn: teamId, status: (m.status ==="scheduled" ? "checked_in" : m.status) };
-        upsertMatch(marked);
-        return marked;
-      });
-      return { ...s, matches: next };
-    });
-  };
-
-
-
-  const applyCheckInDeadlines: Store["applyCheckInDeadlines"] = () => {
-    const now = Date.now();
-    setState((s) => {
-      const changed: Match[] = [];
-      let matches = s.matches.map((m) => {
-        if (m.stage ==="group" || m.status ==="approved" || m.status ==="ff" || !m.scheduledAt) return m;
-        if (m.status !== "checked_in" && m.status !== "scheduled") return m;
-        const deadline = m.ffDeadline ?? (m.scheduledAt + 15 * 60 *  1000);
-        if (m.ffDeadline == null && now >= m.scheduledAt) {
-          const withDeadline = { ...m, ffDeadline: deadline };
-          changed.push(withDeadline);
-          return withDeadline;
-        }
-        if (now < deadline) return m;
-        let winner: string | null = null;
-        if (m.checkedIn === m.homeTeamId || m.checkedIn === m.awayTeamId) winner = m.checkedIn;
-
-
-
-        if (winner) {
-          const marked = { ...m, status: "ff" as const, ffWinner: winner, homeScore: winner === m.homeTeamId ?  1 :   0, awayScore: winner === m.awayTeamId ?  1 :   0 };
-          changed.push(marked);
-          return marked;
-        }
-        // Neither team checked in — leave open for admin to resolve manually.
-
-
-
-        return m;
-      });
-      if (changed.length) {
-        changed.forEach(upsertMatch);
-        const divisionsAffected = [...new Set(changed.map((m) => m.groupId).filter(Boolean))] as Division[];
-        divisionsAffected.forEach((d) => { matches = advanceBracketPure(d, matches); });
-        return { ...s, matches };
-      }
-      return s;
-    });
-  };
   const submitResult: Store["submitResult"] = (matchId, submittedBy, homeScore, awayScore, stats?, photo?, replay?) => {
     const sub: Submission = {
       id: `sub-${Date.now()}`,
@@ -631,8 +563,6 @@ const bracketWinner = (m: Match): string | null => {
         assignGroup,
         generateSchedule,
         generateBracket,
-        checkInTeam,
-        applyCheckInDeadlines,
         submitResult,
         approve,
         reviewRegistration,
