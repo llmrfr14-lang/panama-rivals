@@ -122,20 +122,29 @@ export default function ReportPage() {
         {photoError && (
           <p className="text-xs text-rose-400">Sube una foto del marcador final o un archivo .replay para enviar el resultado..</p>
         )}
+        {match.status === "declined" && !submitted && (
+          <p className="text-center text-sm text-amber-300">
+            Tu reporte anterior fue rechazado por la admin. Corrige el marcador y vuelve a enviarlo..
+
+          </p>
+        )}
         <button
           type="submit"
-          disabled={submitted || match.status !== "scheduled"}
+          disabled={submitted || (match.status !== "scheduled" && match.status !== "declined")}
           className="w-full rounded bg-rivals-blue py-3 font-bold text-white transition disabled:opacity-50 hover:enabled:brightness-110"
         >
-          {match.status !== "scheduled"
+          {match.status !== "scheduled" && match.status !== "declined"
             ? "Ya reportado — esperando aprobación"
             : submitted
               ? "✓ Enviado para revisión"
-              : "Enviar resultado"}
+              : match.status === "declined"
+                ? "Reenviar resultado"
+                : "Enviar resultado"}
         </button>
         {submitted && (
           <p className="text-center text-sm text-emerald-300">
             La admin revisará y aprobará tu reporte. Se publica en standings y stats al aprobarse.
+
           </p>
         )}
       </form>
