@@ -9,6 +9,7 @@ from flask import (
 
 import services
 import database
+import vision  # lector OCR local (tesseract)
 from config import SECRET_KEY, ADMIN_PASS, DATA_DIR, BACKUP_DIR
 
 app = Flask(__name__)
@@ -479,6 +480,38 @@ def _extraer_ids_jugadores(nombre):
     return coincidencias
 
 
+def _norma_equipo(txt):
+    """Normaliza un nombre de equipo para buscar coincidencias.
+
+    Quita acentos, pasa a minúscula y borra cualquier espacio.
+    Sirve para OCR que sale todo junto: 'PUMATITANS' -> 'pumatitans'.
+    """
+    mapa = {
+        "á": "a", "é": "e", "í": "i", "ó": "o", "ú": "u",
+        "ñ": "n", "ü": "u",
+    }
+    txt = txt.lower().strip()
+    for a, b in mapa.items():
+        txt = txt.replace(a, b)
+    return re.sub(r"\s+", "", txt)
+
+
+def _buscar_equipo(txt_normalizado, equipos):
+    """Encuentra el equipo cuyo nombre normalizado (sin espacios) coincida.
+
+    `txt_normalizado` ya viene sin espacios. Compara contra el nombre del
+    equipo normalizado igual (sin espacios) para tolerar OCR 'PUMATITANS'.
+    """
+    for e in equipos:
+        if _norma_equipo(e["nombre"]) == txt_normalizado:
+            return e
+    for e in equipos:
+        if txt_normalizado.startswith(_norma_equipo(e["nombre"])) or \
+           _norma_equipo(e["nombre"]).startswith(txt_normalizado):
+            return e
+    return None
+
+
 def interpretar_resultado_texto(texto, temporada_id):
     """Interpreta un texto/captura del resultado y devuelve candidatos.
 
@@ -487,34 +520,21 @@ def interpretar_resultado_texto(texto, temporada_id):
     """
     resultado = {"partidos": [], "mensaje": "", "confianza": 0}
     lineas = [l.strip() for l in (texto or "").splitlines() if l.strip()]
-    # patrón: "EquipoA 3 - 2 EquipoB"
+    # patrón: "EquipoA 3 - 2 EquipoB" (tolera el nombre unido sin espacios)
     pat = re.compile(r"^(?P<local>.+?)\s+(?P<gl>\d+)\s*[-:]\s*(?P<gv>\d+)\s+(?P<visit>.+)$")
     pendientes = services.partidos_pendientes(temporada_id)
-    mapa_equipos = {
-        e["nombre"].lower(): e
-        for e in services.listar_equipos(temporada_id)
-    }
+    equipos = services.listar_equipos(temporada_id)
 
     for linea in lineas:
         m = pat.match(linea)
         if not m:
             continue
-        local_txt = m.group("local").lower().strip()
-        visit_txt = m.group("visit").lower().strip()
+        local_txt = _norma_equipo(m.group("local"))
+        visit_txt = _norma_equipo(m.group("visit"))
         gl, gv = int(m.group("gl")), int(m.group("gv"))
 
-        local = next(
-            (e for nombre, e in mapa_equipos.items()
-             if nombre == local_txt or nombre.startswith(local_txt)
-             or local_txt.startswith(nombre)),
-            None,
-        )
-        visitante = next(
-            (e for nombre, e in mapa_equipos.items()
-             if nombre == visit_txt or nombre.startswith(visit_txt)
-             or visit_txt.startswith(nombre)),
-            None,
-        )
+        local = _buscar_equipo(local_txt, equipos)
+        visitante = _buscar_equipo(visit_txt, equipos)
         if not local or not visitante:
             continue
         # buscar el partido pendiente entre ambos
@@ -529,10 +549,17 @@ def interpretar_resultado_texto(texto, temporada_id):
         )
         if not partido:
             continue
+        # ALINEAR según la localía real del calendario, respetando el orden
+        # del texto leído: el primer nombre es quien anotó `gl`.
+        if partido["local_id"] == local["id"]:
+            goles_local, goles_visitante = gl, gv
+        else:
+            # en el texto venía primero el equipo que en el calendario es visitante
+            goles_local, goles_visitante = gv, gl
         resultado["partidos"].append({
             "partido_id": partido["id"],
-            "goles_local": gl,
-            "goles_visitante": gv,
+            "goles_local": goles_local,
+            "goles_visitante": goles_visitante,
             "stats": [],
             "confianza": 0.9,  # texto parseado
         })
@@ -555,6 +582,35 @@ def ia_proponer():
     texto = request.form.get("texto", "")
     res = interpretar_resultado_texto(texto, t["id"])
     return jsonify(res)
+
+
+@app.route("/admin/ia/lectura", methods=["POST"])
+@login_requerido
+def ia_lectura():
+    """Recibe una captura de pantalla y devuelve el texto leído (OCR local)."""
+    t = temporada_contexto()["temporada"]
+    if "imagen" not in request.files:
+        return jsonify({"error": "No se recibió ninguna imagen"}), 400
+    archivo = request.files["imagen"]
+    if not archivo.filename:
+        return jsonify({"error": "Archivo vacío"}), 400
+    datos = archivo.read()
+    if not datos:
+        return jsonify({"error": "El archivo está vacío"}), 400
+
+    if not vision.disponible():
+        return jsonify({
+            "error": "El OCR local (tesseract) no está instalado en este servidor"
+        }), 503
+
+    try:
+        texto = vision.text_from_bytes(datos)
+        # además intentamos interpretar el resultado directamente
+        res = interpretar_resultado_texto(texto, t["id"])
+        res["texto_leido"] = texto
+        return jsonify(res)
+    except Exception as exc:
+        return jsonify({"error": f"No pude leer la imagen: {exc}"}), 400
 
 
 @app.route("/admin/ia/aplicar", methods=["POST"])

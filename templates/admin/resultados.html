@@ -6,16 +6,24 @@
 <p class="page-sub">Sube aquí los marcadores y el scoreboard de cada partido.</p>
 
 <div class="card" style="margin-bottom:22px;">
-  <h2>🤖 Asistente IA — pega el resultado</h2>
+  <h2>🤖 Asistente IA — pega el texto o sube una captura</h2>
   <p class="hint">
-    Pega el texto del resultado y la IA lo interpreta para precargar el formulario.
-    Formato recomendado: <code>EquipoA 3 - 2 EquipoB</code> (o captura de texto).
+    <strong>Opción 1:</strong> pega el texto del resultado (ej: <code>EquipoA 3 - 2 EquipoB</code>).
+    <br><strong>Opción 2:</strong> sube una <strong>captura de pantalla</strong> del final de la partida
+    (pantalla de Rocket League) y la IA la lee sola.
   </p>
+
   <textarea class="textarea-ia" id="ia-texto" placeholder="Ej: Puma Titans 3 - 2 Neon Wolves&#10;Neon Wolves 1 - 3 Thunder Cats">{{ texto_ini }}</textarea>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
     <button class="btn btn-cyan" type="button" onclick="iaProponer()">🤖 Interpretar texto</button>
+    <label class="btn btn-ghost" style="cursor:pointer;">
+      🖼️ Subir captura
+      <input type="file" id="ia-imagen" accept="image/*" style="display:none;" onchange="iaLeerImagen(this)">
+    </label>
     <span style="font-size:13px;color:var(--muted);align-self:center;">La IA llena los marcadores candidatos; tú confirmas.</span>
   </div>
+  <div id="ia-preview" style="margin-top:10px;"></div>
   <div id="ia-resultados" style="margin-top:14px;"></div>
 </div>
 
@@ -203,6 +211,58 @@ function iaProponer() {
     })
     .catch(() => {
       box.innerHTML = '<div class="highlight">Ocurrió un error al interpretar. Usá el formulario manual.</div>';
+    });
+}
+
+// ---- Asistente IA: leer captura de pantalla (OCR local) ----
+function iaLeerImagen(input) {
+  const box = document.getElementById('ia-resultados');
+  const prev = document.getElementById('ia-preview');
+  const archivo = input.files && input.files[0];
+  if (!archivo) return;
+
+  // mini-preview de lo que subió
+  prev.innerHTML = `<span style="font-size:13px;color:var(--muted);">🖼️ ${esc(archivo.name)} — analizando…</span>`;
+
+  const fd = new FormData();
+  fd.append('imagen', archivo);
+  box.innerHTML = '<div class="highlight" style="color:var(--muted);">🔍 La IA está leyendo la captura…</div>';
+
+  fetch('{{ url_for("ia_lectura") }}', {method: 'POST', body: fd})
+    .then(r => r.json().then(data => ({ok: r.ok, data})))
+    .then(({ok, data}) => {
+      if (!ok) {
+        box.innerHTML = `<div class="highlight">${esc(data.error || 'No se pudo leer la imagen.')}</div>`;
+        prev.innerHTML = '';
+        return;
+      }
+      // si la IA interpretó algo, mostramos el texto leído y los candidatos
+      prev.innerHTML = `<div class="highlight">📄 Texto leído por la IA:<br><em>${esc(data.texto_leido || '—')}</em></div>`;
+      if (!data.partidos || !data.partidos.length) {
+        box.innerHTML = `<div class="highlight">${esc(data.mensaje || 'Leí el texto pero no reconocí ningún partido pendiente. Revisa que los equipos existan en el panel de Equipos.')}</div>`;
+        return;
+      }
+      let html = '<h3>Resultados interpretados — revisa y confirma</h3>';
+      html += '<div class="highlight" style="color:var(--green);">Confianza: ' + (Math.round(data.confianza*100)) + '%</div>';
+      data.partidos.forEach((item, i) => {
+        const p = PARTIDO_BY_ID[item.partido_id];
+        if (!p) return;
+        html += `<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:10px;background:var(--bg2);border-radius:10px;margin:8px 0;">
+          <span style="flex:1;font-weight:600;">${esc(p.local.nombre)}</span>
+          <span>
+            <input type="number" id="ia-gl-${item.partido_id}" value="${item.goles_local}" min="0" style="width:70px;">
+            <span style="color:var(--muted);"> - </span>
+            <input type="number" id="ia-gv-${item.partido_id}" value="${item.goles_visitante}" min="0" style="width:70px;">
+          </span>
+          <span style="flex:1;text-align:right;font-weight:600;">${esc(p.visitante.nombre)}</span>
+          <button class="btn btn-sm btn-green" onclick="iaConfirmar(${item.partido_id})">Aplicar ✓</button>
+        </div>`;
+      });
+      box.innerHTML = html;
+    })
+    .catch((err) => {
+      box.innerHTML = '<div class="highlight">Ocurrió un error al leer la imagen. Usá el formulario manual.</div>';
+      prev.innerHTML = '';
     });
 }
 

@@ -59,13 +59,22 @@ bash run.sh
 
 ## 🤖 ¿Cómo funciona el "asistente IA"?
 
-No usa un servidor de IA externo (por eso jamás se cae por eso). El botón
-**"Interpretar texto"** analiza el texto que pegas, reconoce los equipos y el
-marcador, encuentra el partido pendiente correspondiente y precarga el
-formulario para que solo presiones **"Aplicar ✓"**. Puedes corregir el marcador
-antes de aplicar.
+No usa un servidor de IA externo (por eso jamás se cae por eso): corre
+**100% en tu servidor**. Tiene dos formas de usarse:
 
-Si tu texto no se interpreta, la página te avisa y usas el formulario manual.
+1. **Pegar texto**: escribe el resultado (ej: `Puma Titans 3 - 2 Neon Wolves`)
+   y pulsa **"Interpretar texto"**.
+2. **🖼 Subir captura**: sube una **captura de pantalla** del marcador final de
+   Rocket League. Se usa OCR local (Tesseract) para leer el texto de la imagen,
+   se reconocen los equipos y el marcador, y se precarga el formulario.
+
+En ambos casos la IA encuentra el partido pendiente correspondiente y te lo
+muestra para que presiones **"Aplicar ✓"**. Puedes corregir el marcador antes
+de aplicar. Si no se interpreta, la página te avisa y usas el formulario manual.
+
+> Requisito para la lectura de capturas: tener `tesseract` instalado en el
+> servidor (`sudo apt-get install -y tesseract-ocr tesseract-ocr-spa`).
+> Los requisitos Python (`pytesseract`, `Pillow`) están en `requirements.txt`.
 
 ---
 
@@ -82,6 +91,7 @@ Si tu texto no se interpreta, la página te avisa y usas el formulario manual.
 ├── templates/      → vistas (públicas + admin)
 ├── static/css/     → estilos
 └── data/           → base de datos + backups automáticos
+└── vision.py       → lector OCR local (tesseract) para capturas
 ```
 
 ---
