@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block title %}Resultados · Panel{% endblock %}
+{% block content %}
+
+<div class="page-title">⚽ Resultados y estadísticas ({{ temporada.nombre }})</div>
+<p class="page-sub">Sube aquí los marcadores y el scoreboard de cada partido.</p>
+
+<div class="card" style="margin-bottom:22px;">
+  <h2>🤖 Asistente IA — pega el resultado</h2>
+  <p class="hint">
+    Pega el texto del resultado y la IA lo interpreta para precargar el formulario.
+    Formato recomendado: <code>EquipoA 3 - 2 EquipoB</code> (o captura de texto).
+  </p>
+  <textarea class="textarea-ia" id="ia-texto" placeholder="Ej: Puma Titans 3 - 2 Neon Wolves&#10;Neon Wolves 1 - 3 Thunder Cats">{{ texto_ini }}</textarea>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <button class="btn btn-cyan" type="button" onclick="iaProponer()">🤖 Interpretar texto</button>
+    <span style="font-size:13px;color:var(--muted);align-self:center;">La IA llena los marcadores candidatos; tú confirmas.</span>
+  </div>
+  <div id="ia-resultados" style="margin-top:14px;"></div>
+</div>
+
+<div class="card" style="margin-bottom:22px;">
+  <h2>✍️ Cargar resultado manual</h2>
+  <div class="collapse" id="manual-box">
+    <summary>Suelto manualmente el resultado de un partido (sin IA)</summary>
+    <div class="inner">
+      <p class="hint">Elige el partido y escribe el marcador. Las estadísticas por jugador son opcionales.</p>
+      <form method="POST" id="form-manual">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
+          <div style="flex:1;min-width:240px;">
+            <label>Partido</label>
+            <select name="partido_id" id="sel-partido" required>
+              {% for p in partidos %}
+              <option value="{{ p.id }}">J{{ p.jornada }} · {{ p.local_nombre }} vs {{ p.visitante_nombre }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div style="width:90px;">
+            <label>Goles local</label>
+            <input type="number" name="goles_local" id="mn-gol-local" min="0" value="0">
+          </div>
+          <div style="width:90px;">
+            <label>Goles visitante</label>
+            <input type="number" name="goles_visitante" id="mn-gol-vis" min="0" value="0">
+          </div>
+          <div style="width:160px;">
+            <label>Fecha (opcional)</label>
+            <input type="date" name="fecha">
+          </div>
+          <button class="btn btn-green" type="submit">💾 Guardar resultado</button>
+        </div>
+        <div id="mn-jugadores" style="margin-top:14px;"></div>
+        <input type="hidden" name="estado" value="jugado">
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Partidos de la temporada</h2>
+  <p class="hint">Toca el 📝 de un partido para cargar su resultado con estadísticas por jugador.</p>
+  <div class="table-wrap">
+    <table class="tabla">
+      <thead>
+        <tr><th>J</th><th>Local</th><th>Marcador</th><th>Visitante</th><th>Estado</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for p in partidos %}
+        <tr>
+          <td>{{ p.jornada }}</td>
+          <td>{{ p.local_nombre }}</td>
+          <td>
+            {% if p.estado == 'jugado' %}<strong>{{ p.goles_local }} - {{ p.goles_visitante }}</strong>
+            {% else %}<span style="color:var(--muted);">pendiente</span>{% endif %}
+          </td>
+          <td>{{ p.visitante_nombre }}</td>
+          <td><span class="badge {{ 'badge-ok' if p.estado=='jugado' else 'badge-pend' }}">{{ p.estado }}</span></td>
+          <td>
+            <button class="btn btn-sm btn-ghost" onclick="cargarResultado({{ p.id }}, '{{ p.local_nombre }}', '{{ p.visitante_nombre }}')">📝 Cargar</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// ---- datos de jugadores por partido ----
+const PARTIDOS = [
+  {% for p in partidos %}
+  {
+    id: {{ p.id }},
+    jornada: {{ p.jornada }},
+    local: {
+      nombre: "{{ p.local_nombre | e }}",
+      id: {{ p.local_id if p.local_id else 'null' }},
+      jugadores: [
+        {% for j in p.jugadores_local %}
+        {id: {{ j.id }}, nombre: "{{ j.nombre | e }}"},{% endfor %}
+      ]
+    },
+    visitante: {
+      nombre: "{{ p.visitante_nombre | e }}",
+      id: {{ p.visitante_id if p.visitante_id else 'null' }},
+      jugadores: [
+        {% for j in p.jugadores_visitante %}
+        {id: {{ j.id }}, nombre: "{{ j.nombre | e }}"},{% endfor %}
+      ]
+    }
+  },
+  {% endfor %}
+];
+
+const PARTIDO_BY_ID = Object.fromEntries(PARTIDOS.map(p => [p.id, p]));
+
+function esc(t) {
+  if (!t) return '';
+  const div = document.createElement('div');
+  div.textContent = t;
+  return div.innerHTML;
+}
+
+function cargarResultado(pid, ln, vn) {
+  // Selecciona el partido en el selector y hace scroll
+  const sel = document.getElementById('sel-partido');
+  sel.value = String(pid);
+  document.getElementById('mn-gol-local').value = 0;
+  document.getElementById('mn-gol-vis').value = 0;
+  renderJugadoresManual();
+  document.getElementById('manual-box').open = true;
+  document.getElementById('manual-box').scrollIntoView({behavior:'smooth'});
+}
+
+function renderJugadoresManual() {
+  const sel = document.getElementById('sel-partido');
+  const data = PARTIDO_BY_ID[Number(sel.value)];
+  const box = document.getElementById('mn-jugadores');
+  if (!data) { box.innerHTML = ''; return; }
+
+  let html = '<h3 style="font-size:15px;margin-bottom:10px;">Estadísticas por jugador (opcional)</h3>';
+  for (const [k, lado] of [['local', data.local], ['visitante', data.visitante]]) {
+    html += `<div style="margin-bottom:12px;">
+      <strong style="color:var(--cyan);">${esc(lado.nombre)}</strong>`;
+
+    // Encontrar los jugadores de este equipo
+    const lista = lado.jugadores;
+    if (lista.length) {
+      for (const j of lista) {
+        html += `<table style="width:100%;margin-top:6px;background:var(--bg2);border-radius:8px;padding:6px;font-size:13px;">
+          <tr>
+            <td style="font-weight:700;width:120px;">${esc(j.nombre)}</td>
+            <td style="min-width:64px;"><label>G</label><br><input type="number" name="jug_goles_${j.id}" min="0" value="0" style="margin:0;"></td>
+            <td style="min-width:64px;"><label>A</label><br><input type="number" name="jug_asist_${j.id}" min="0" value="0" style="margin:0;"></td>
+            <td style="min-width:64px;"><label>T</label><br><input type="number" name="jug_tiros_${j.id}" min="0" value="0" style="margin:0;"></td>
+            <td style="min-width:64px;"><label>S</label><br><input type="number" name="jug_salv_${j.id}" min="0" value="0" style="margin:0;"></td>
+            <td style="min-width:64px;"><label>Pts</label><br><input type="number" name="jug_puntos_${j.id}" min="0" value="0" style="margin:0;"></td>
+          </tr></table>`;
+      }
+    } else {
+      html += `<p style="color:var(--muted);font-size:13px;margin:4px 0;">Sin jugadores registrados.</p>`;
+    }
+    html += '</div>';
+  }
+  box.innerHTML = html;
+}
+
+document.getElementById('sel-partido').addEventListener('change', renderJugadoresManual);
+renderJugadoresManual();
+
+// ---- Asistente IA ----
+function iaProponer() {
+  const texto = document.getElementById('ia-texto').value.trim();
+  const box = document.getElementById('ia-resultados');
+  if (!texto) { box.innerHTML = '<div class="highlight">Escribe algún texto primero.</div>'; return; }
+  const fd = new FormData();
+  fd.append('texto', texto);
+  box.innerHTML = '<div class="highlight" style="color:var(--muted);">🤖 Analizando…</div>';
+  fetch('{{ url_for("ia_proponer") }}', {method:'POST', body: fd})
+    .then(r => r.json())
+    .then(res => {
+      if (!res.partidos || !res.partidos.length) {
+        box.innerHTML = `<div class="highlight">${esc(res.mensaje || 'No se encontró ningún resultado interpretable.')}</div>`;
+        return;
+      }
+      let html = '<h3>Resultados interpretados — revisa y confirma</h3>';
+      html += '<div class="highlight" style="color:var(--green);">Confianza: ' + (Math.round(res.confianza*100)) + '%</div>';
+      res.partidos.forEach((item, i) => {
+        const p = PARTIDO_BY_ID[item.partido_id];
+        if (!p) return;
+        html += `<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:10px;background:var(--bg2);border-radius:10px;margin:8px 0;">
+          <span style="flex:1;font-weight:600;">${esc(p.local.nombre)}</span>
+          <span>
+            <input type="number" id="ia-gl-${item.partido_id}" value="${item.goles_local}" min="0" style="width:70px;">
+            <span style="color:var(--muted);"> - </span>
+            <input type="number" id="ia-gv-${item.partido_id}" value="${item.goles_visitante}" min="0" style="width:70px;">
+          </span>
+          <span style="flex:1;text-align:right;font-weight:600;">${esc(p.visitante.nombre)}</span>
+          <button class="btn btn-sm btn-green" onclick="iaConfirmar(${item.partido_id})">Aplicar ✓</button>
+        </div>`;
+      });
+      box.innerHTML = html;
+    })
+    .catch(() => {
+      box.innerHTML = '<div class="highlight">Ocurrió un error al interpretar. Usá el formulario manual.</div>';
+    });
+}
+
+function iaConfirmar(pid) {
+  const gl = parseInt(document.getElementById('ia-gl-' + pid).value || 0, 10);
+  const gv = parseInt(document.getElementById('ia-gv-' + pid).value || 0, 10);
+  const body = { partidos: [{ partido_id: pid, goles_local: gl, goles_visitante: gv }] };
+  fetch('{{ url_for("ia_aplicar") }}', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body)
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.ok) {
+      alert('✅ Resultado aplicado.');
+      window.location.reload();
+    } else {
+      alert('Hubo un error: ' + (res.error || 'desconocido'));
+    }
+  });
+}
+
+// Cargar texto inicial del dashboard (via ?texto=)
+const params = new URLSearchParams(window.location.search);
+if (params.get('texto')) {
+  document.getElementById('ia-texto').value = params.get('texto');
+}
+</script>
+{% endblock %}

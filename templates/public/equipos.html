@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Equipos · Liga Rocket League{% endblock %}
+{% block content %}
+
+<div class="page-title">Equipos de la temporada</div>
+<p class="page-sub">Toca un equipo para ver su detalle y partidos.</p>
+
+{% if not detalle %}
+<div class="card empty-state">
+  <div class="big">🚗</div>
+  <h3>Sin equipos todavía</h3>
+  <p>Los equipos se van inscribiendo durante la temporada.</p>
+</div>
+{% else %}
+<div class="teams-grid">
+  {% for d in detalle %}
+  <a href="{{ url_for('equipo_detalle', eid=d.equipo.id) }}" style="color:inherit;">
+    <div class="team-card">
+      <div class="team-logo" style="background:{{ d.equipo.color }}">{{ d.equipo.abrev[:2] }}</div>
+      <h3>{{ d.equipo.nombre }}</h3>
+      <div class="players">
+        {% for j in d.jugadores %} {{ '👑' if j.es_capitan else '' }} {{ j.nombre }}<br>{% endfor %}
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Calendario · Liga Rocket League{% endblock %}
+{% block content %}
+
+<div class="page-title">Calendario y resultados</div>
+<p class="page-sub">Todas las jornadas de la temporada. Haz clic en un partido para ver su detalle.</p>
+
+{% if not jornadas %}
+<div class="card empty-state">
+  <div class="big">📅</div>
+  <h3>Aún no hay calendario</h3>
+  <p>En cuanto se registren los equipos, se generará el calendario automáticamente.</p>
+</div>
+{% else %}
+  {% for jornada, partidos in jornadas.items() | sort %}
+  <div class="jornada-block">
+    <div class="page-sub" style="font-weight:800;display:flex;align-items:center;gap:8px;">
+      Jornada {{ jornada }}
+      {% set jugados = partidos | selectattr('estado','equalto','jugado') | list %}
+      <span class="badge {{ 'badge-ok' if (jugados | length) == (partidos | length) else 'badge-pend' }}">
+        {{ jugados | length }}/{{ partidos | length }}
+      </span>
+    </div>
+    {% for p in partidos %}
+    <a href="{{ url_for('partido_detalle', pid=p.id) }}" style="color:inherit;">
+    <div class="j-row {{ p.estado }}">
+      <div class="face">
+        <span class="dot" style="background:{{ p.local_color }}"></span>{{ p.local_nombre or '?' }}
+      </div>
+      <div class="mid">
+        {% if p.estado == 'pendiente' %}
+          <span class="marker">vs</span>
+        {% else %}
+          <span class="marker">
+            {{ p.goles_local }} <span style="color:var(--muted);"> - </span> {{ p.goles_visitante }}
+          </span>
+        {% endif %}
+      </div>
+      <div class="face" style="justify-content:flex-end;">
+        {{ p.visitante_nombre or '?' }}<span class="dot" style="background:{{ p.visitante_color }}"></span>
+      </div>
+      {% if p.fecha %}
+      <div style="font-size:12px;color:var(--muted);width:100%;text-align:center;">📅 {{ p.fecha }}</div>
+      {% endif %}
+    </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% endfor %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Partido · Liga Rocket League{% endblock %}
+{% block content %}
+
+<div class="page-sub">Jornada {{ partido.jornada }}{% if partido.fecha %} · {{ partido.fecha }}{% endif %} · {{ partido.estado | upper }}</div>
+
+<div class="scoreboard">
+  <div class="sb-team">
+    <div class="name" style="color:{{ local.color if local else '#fff' }}">{{ partido.local_nombre or '?' }}</div>
+    <div class="abbr">{{ partido.local_abrev or '' }}</div>
+  </div>
+  {% if partido.estado == 'pendiente' %}
+    <div class="sb-score" style="font-size:26px;color:var(--muted);">PENDIENTE</div>
+  {% else %}
+    <div class="sb-score {{ 'winner' if partido.goles_local >= partido.goles_visitante else 'loser' }}">{{ partido.goles_local }}</div>
+    <div class="sb-versus">FINAL<br>J{{ partido.jornada }}</div>
+    <div class="sb-score {{ 'winner' if partido.goles_visitante >= partido.goles_local else 'loser' }}">{{ partido.goles_visitante }}</div>
+  {% endif %}
+  <div class="sb-team">
+    <div class="name" style="color:{{ visitante.color if visitante else '#fff' }}">{{ partido.visitante_nombre or '?' }}</div>
+    <div class="abbr">{{ partido.visitante_abrev or '' }}</div>
+  </div>
+</div>
+
+{% if partido.estado == 'jugado' %}
+<div class="card" style="margin-top:20px;">
+  <h2>📊 Estadísticas del partido</h2>
+  {% if stats %}
+  <table class="tabla">
+    <thead>
+      <tr>
+        <th>Jugador</th><th>Equipo</th>
+        <th class="num">⚽ Goles</th><th class="num">🅰️ Asist.</th>
+        <th class="num">🎯 Tiros</th><th class="num">🧤 Salv.</th>
+        <th class="num">💯 Puntos</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in stats %}
+      <tr>
+        <td style="font-weight:700;">{{ s.jugador }}</td>
+        <td><span class="equip-cell"><span class="dot" style="background:{{ s.color }}"></span>{{ s.equipo }}</span></td>
+        <td class="num">{{ s.goles }}</td>
+        <td class="num">{{ s.asistencias }}</td>
+        <td class="num">{{ s.tiros }}</td>
+        <td class="num">{{ s.salvadas }}</td>
+        <td class="num pts-col">{{ s.puntos }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="hint">No se registraron estadísticas individuales para este partido.</p>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if partido.notas %}
+<div class="card" style="margin-top:16px;">
+  <h2>📝 Notas</h2>
+  <p>{{ partido.notas }}</p>
+</div>
+{% endif %}
+
+{% endblock %}

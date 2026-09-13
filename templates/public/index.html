@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Inicio · Liga Rocket League{% endblock %}
+{% block content %}
+
+<div class="page-title">Inicio de la Liga 🏆</div>
+<p class="page-sub">{{ datos.comentario if datos and datos.comentario else 'Temporada en preparación' }}</p>
+
+{% if not datos %}
+  <div class="card empty-state">
+    <div class="big">🚧</div>
+    <h3>La liga se está preparando</h3>
+    <p>Aún no hay temporada activa con datos.</p>
+  </div>
+{% else %}
+
+  {% set jugados = datos.partidos | selectattr('estado','equalto','jugado') | list %}
+  {% set ultimo = jugados[-1] if jugados else None %}
+  {% set proximos = datos.partidos | selectattr('estado','equalto','pendiente') | list %}
+
+  {% if ultimo %}
+    <div class="page-sub" style="font-weight:600;">ÚLTIMO RESULTADO</div>
+    <div class="scoreboard">
+      <div class="sb-team">
+        <div class="name" style="color:{{ ultimo.local_color }}">{{ ultimo.local_nombre or '?' }}</div>
+        <div class="abbr">{{ ultimo.local_abrev or '' }}</div>
+      </div>
+      <div class="sb-score {{ 'winner' if ultimo.goles_local >= ultimo.goles_visitante else 'loser' }}">{{ ultimo.goles_local }}</div>
+      <div class="sb-versus">FINAL<br>J{{ ultimo.jornada }}</div>
+      <div class="sb-score {{ 'winner' if ultimo.goles_visitante >= ultimo.goles_local else 'loser' }}">{{ ultimo.goles_visitante }}</div>
+      <div class="sb-team">
+        <div class="name" style="color:{{ ultimo.visitante_color }}">{{ ultimo.visitante_nombre or '?' }}</div>
+        <div class="abbr">{{ ultimo.visitante_abrev or '' }}</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin:-16px 0 26px;">
+      <a href="{{ url_for('partido_detalle', pid=ultimo.id) }}" class="btn btn-sm btn-ghost">Ver detalle del partido</a>
+    </div>
+  {% endif %}
+
+  <div class="grid grid-2">
+    <div class="card">
+      <h2>📊 Tabla de posiciones</h2>
+      <div class="table-wrap">
+        <table class="tabla">
+          <thead>
+            <tr><th>#</th><th>Equipo</th><th class="num">PTS</th><th class="num">PJ</th><th class="num">PG</th><th class="num">PE</th><th class="num">PP</th><th class="num">GF</th><th class="num">GC</th><th class="num">DG</th><th>Racha</th></tr>
+          </thead>
+          <tbody>
+            {% for f in datos.tabla %}
+            <tr>
+              <td class="pos pos-{{ f.pos }}">{{ f.pos }}</td>
+              <td><span class="equip-cell"><span class="dot" style="background:{{ f.color }}"></span>{{ f.nombre }}</span></td>
+              <td class="num pts-col">{{ f.pts }}</td>
+              <td class="num">{{ f.pj }}</td>
+              <td class="num">{{ f.pg }}</td>
+              <td class="num">{{ f.pe }}</td>
+              <td class="num">{{ f.pp }}</td>
+              <td class="num">{{ f.gf }}</td>
+              <td class="num">{{ f.gc }}</td>
+              <td class="num">{{ f.dg }}</td>
+              <td class="racha">
+                {% for c in f.racha %}<span class="{{ c }}">{{ c }}</span>{% endfor %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>👑 Top goleadores</h2>
+      {% set top = datos.jugadores | sort(attribute='goles', reverse=True) | list %}
+      {% if top %}
+      <div class="podio">
+        {% for j in top[:3] %}
+        <div class="podium-card top{{ loop.index }}">
+          <div class="rank">{{ loop.index }} {{ '🥇' if loop.index==1 else ('🥈' if loop.index==2 else '🥉') }}</div>
+          <div style="font-weight:800;font-size:16px;">{{ j.nombre }}</div>
+          <div style="color:var(--muted);font-size:13px;">{{ j.equipo }}</div>
+          <div style="font-size:30px;font-weight:900;color:var(--green);">{{ j.goles }}</div>
+          <div style="color:var(--muted);font-size:11px;text-transform:uppercase;">goles</div>
+        </div>
+        {% endfor %}
+      </div>
+      <a href="{{ url_for('estadisticas') }}" class="btn btn-sm btn-ghost">Ver todas las estadísticas →</a>
+      {% else %}
+      <p class="hint">Aún no hay goles registrados.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if proximos %}
+  <div style="margin-top:26px;">
+    <div class="page-sub" style="font-weight:600;">PRÓXIMOS PARTIDOS</div>
+    <div class="matches-strip">
+      {% for p in proximos[:6] %}
+      <div class="match-card">
+        <span class="jornada">J{{ p.jornada }}</span>
+        <span class="team">{{ p.local_nombre }}</span>
+        <span class="score pend">vs</span>
+        <span class="team">{{ p.visitante_nombre }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+{% endif %}
+{% endblock %}

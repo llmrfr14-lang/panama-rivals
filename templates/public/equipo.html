@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ equipo.nombre }} · Liga Rocket League{% endblock %}
+{% block content %}
+
+<div class="page-title" style="display:flex;align-items:center;gap:12px;">
+  <span class="team-logo" style="width:48px;height:48px;font-size:18px;margin:0;background:{{ equipo.color }};border-radius:12px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:900;">{{ equipo.abrev[:2] }}</span>
+  {{ equipo.nombre }}
+</div>
+<p class="page-sub">{{ equipo.abrev }}</p>
+
+<div class="grid grid-2">
+  <div class="card">
+    <h2>👥 Jugadores</h2>
+    {% if jugadores %}
+      {% for j in jugadores %}
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(42,53,80,.3);">
+        <span style="flex:1;font-weight:600;">{{ '👑 ' if j.es_capitan else '🔹 ' }}{{ j.nombre }}</span>
+        <span class="badge {{ 'badge-ok' if j.es_capitan else 'badge-pend' }}">{{ 'Capitán' if j.es_capitan else 'Jugador' }}</span>
+      </div>
+      {% endfor %}
+    {% else %}
+    <p class="hint">Sin jugadores registrados.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>📅 Partidos</h2>
+    {% if partidos %}
+      {% for p in partidos %}
+      <a href="{{ url_for('partido_detalle', pid=p.id) }}" style="color:inherit;">
+      <div class="j-row {{ p.estado }}" style="margin-bottom:6px;">
+        <div class="face"><span class="dot" style="background:{{ p.local_color }}"></span>{{ p.local_nombre }}</div>
+        <div class="mid">
+          {% if p.estado == 'pendiente' %}
+            <span class="marker">vs</span>
+          {% else %}
+            <span class="marker">{{ p.goles_local }} - {{ p.goles_visitante }}</span>
+          {% endif %}
+        </div>
+        <div class="face" style="justify-content:flex-end;">{{ p.visitante_nombre }}<span class="dot" style="background:{{ p.visitante_color }}"></span></div>
+        <div style="font-size:12px;color:var(--muted);width:100%;">J{{ p.jornada }}{% if p.fecha %} · {{ p.fecha }}{% endif %}</div>
+      </div>
+      </a>
+      {% endfor %}
+    {% else %}
+    <p class="hint">Sin partidos todavía.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Temporadas · Panel{% endblock %}
+{% block content %}
+
+<div class="page-title">🏆 Temporadas</div>
+<p class="page-sub">Crea temporadas (histórico) y define cuál está activa.</p>
+
+<div class="card" style="margin-bottom:20px;">
+  <h2>➕ Crear temporada</h2>
+  <form method="POST" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
+    <div style="flex:1;min-width:220px;">
+      <label>Nombre</label>
+      <input type="text" name="nombre" placeholder="Ej: Temporada 2" required>
+    </div>
+    <label style="display:flex;align-items:center;gap:6px;margin-bottom:12px;font-size:14px;font-weight:600;color:var(--text);">
+      <input type="checkbox" name="activa" value="1" style="width:auto;"> Activar ahora
+    </label>
+    <input type="hidden" name="accion" value="crear">
+    <button class="btn btn-green" type="submit">Crear</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Temporadas existentes</h2>
+  {% for t in temporadas %}
+  <div style="display:flex;align-items:center;gap:10px;padding:12px;border-bottom:1px solid rgba(42,53,80,.3);">
+    <span style="flex:1;font-weight:700;">{{ t.nombre }}</span>
+    {% if t.activa %}
+      <span class="badge badge-activa">Actual</span>
+    {% else %}
+      <form method="POST" onsubmit="return confirm('¿Activar {{ t.nombre }} como temporada actual?');">
+        <input type="hidden" name="accion" value="activar">
+        <input type="hidden" name="temporada_id" value="{{ t.id }}">
+        <button class="btn btn-sm btn-ghost" type="submit">Activar</button>
+      </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

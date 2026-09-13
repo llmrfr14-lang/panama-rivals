@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Historial · Liga Rocket League{% endblock %}
+{% block content %}
+
+<div class="page-title">Historial de temporadas</div>
+<p class="page-sub">Así se jugaron las temporadas anteriores. 🏁</p>
+
+{% if not temporadas %}
+<div class="card empty-state">
+  <div class="big">🏆</div>
+  <h3>Sin historial</h3>
+  <p>Cuando tengas temporadas guardadas, aparecerán aquí.</p>
+</div>
+{% else %}
+  {% for t in temporadas %}
+  <div class="card hist-card">
+    <div class="hist-title">
+      <h2 style="margin:0;">{{ t.temporada.nombre }}</h2>
+      {% if t.temporada.activa %}
+      <span class="badge badge-activa">Temporada actual</span>
+      {% endif %}
+    </div>
+    {% if t.equipos %}
+    <div class="table-wrap">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>#</th><th>Equipo</th>
+            <th class="num">PTS</th><th class="num">PJ</th><th class="num">PG</th>
+            <th class="num">PE</th><th class="num">PP</th><th class="num">GF</th><th class="num">GC</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in t.tabla %}
+          <tr>
+            <td class="pos pos-{{ f.pos }}">{{ f.pos }}</td>
+            <td><span class="equip-cell"><span class="dot" style="background:{{ f.color }}"></span>{{ f.nombre }}</span></td>
+            <td class="num pts-col">{{ f.pts }}</td>
+            <td class="num">{{ f.pj }}</td>
+            <td class="num">{{ f.pg }}</td>
+            <td class="num">{{ f.pe }}</td>
+            <td class="num">{{ f.pp }}</td>
+            <td class="num">{{ f.gf }}</td>
+            <td class="num">{{ f.gc }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="hint">Esta temporada no tiene equipos registrados.</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% endif %}
+{% endblock %}

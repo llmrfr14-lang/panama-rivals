@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Liga Rocket League{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/rocket.css') }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%2300d1ff'/></svg>">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="{{ url_for('index') }}" class="nav-logo">
+      <span class="ball"></span> Liga RL
+    </a>
+    <div class="nav-links">
+      <a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' }}">Inicio</a>
+      <a href="{{ url_for('posiciones') }}" class="{{ 'active' if request.endpoint == 'posiciones' }}">Posiciones</a>
+      <a href="{{ url_for('calendario') }}" class="{{ 'active' if request.endpoint == 'calendario' }}">Calendario</a>
+      <a href="{{ url_for('estadisticas') }}" class="{{ 'active' if request.endpoint == 'estadisticas' }}">Estadísticas</a>
+      <a href="{{ url_for('equipos') }}" class="{{ 'active' if request.endpoint in ('equipos','equipo_detalle') }}">Equipos</a>
+      <a href="{{ url_for('historial') }}" class="{{ 'active' if request.endpoint == 'historial' }}">Historial</a>
+      {% if session.get('admin') %}
+      <a href="{{ url_for('admin_dashboard') }}" class="btn btn-sm" style="background:linear-gradient(90deg,#19b370,#2ecc71);color:#04131b;">Panel</a>
+      {% else %}
+      <a href="{{ url_for('admin_login') }}" class="btn btn-sm btn-ghost">Admin</a>
+      {% endif %}
+    </div>
+    {% if TEMP_ACTIVA %}
+    <span class="nav-temp">{{ TEMP_ACTIVA.nombre }}</span>
+    {% endif %}
+  </nav>
+
+  <main class="wrap">
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% if msgs %}
+        {% for cat, msg in msgs %}
+          <div class="flash {{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    🏆 Liga Rocket League · Temporada {{ TEMP_ACTIVA.nombre if TEMP_ACTIVA else 'en preparación' }} · Hecho para que nunca se caiga 🚀
+  </footer>
+</body>
+</html>

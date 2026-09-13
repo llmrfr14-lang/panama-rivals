@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Panel · Liga Rocket League{% endblock %}
+{% block content %}
+
+<div class="page-title">🛠️ Panel de administración</div>
+<p class="page-sub">Gestiona tu liga desde aquí. Sesión admin activa.</p>
+
+<div class="card" style="margin-bottom:20px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+    <div>
+      <strong>Temporada activa:</strong> {{ temporada.nombre if temporada else 'Sin temporada' }}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a href="{{ url_for('index') }}" class="btn btn-sm btn-ghost">Ver página</a>
+      <a href="{{ url_for('admin_seguridad') }}" class="btn btn-sm btn-ghost">🔐 Seguridad</a>
+      <form method="POST" action="{{ url_for('admin_backup') }}" style="display:inline;">
+        <button class="btn btn-sm btn-cyan" type="submit">💾 Hacer backup</button>
+      </form>
+      <a href="{{ url_for('admin_logout') }}" class="btn btn-sm btn-danger">Salir</a>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-2" style="grid-template-columns:repeat(auto-fill,minmax(230px,1fr));">
+  <a href="{{ url_for('admin_equipos') }}" style="color:inherit;">
+    <div class="card" style="text-align:center;">
+      <div style="font-size:34px;">🚗</div>
+      <h3>Equipos</h3>
+      <p class="hint" style="margin:0;">Crear, editar y eliminar equipos y jugadores</p>
+    </div>
+  </a>
+  <a href="{{ url_for('admin_resultados') }}" style="color:inherit;">
+    <div class="card" style="text-align:center;">
+      <div style="font-size:34px;">⚽</div>
+      <h3>Resultados</h3>
+      <p class="hint" style="margin:0;">Subir marcadores y estadísticas de cada partido</p>
+    </div>
+  </a>
+  <a href="{{ url_for('admin_calendario') }}" style="color:inherit;">
+    <div class="card" style="text-align:center;">
+      <div style="font-size:34px;">📅</div>
+      <h3>Calendario</h3>
+      <p class="hint" style="margin:0;">Generar jornadas y agregar partidos</p>
+    </div>
+  </a>
+  <a href="{{ url_for('admin_temporadas') }}" style="color:inherit;">
+    <div class="card" style="text-align:center;">
+      <div style="font-size:34px;">🏆</div>
+      <h3>Temporadas</h3>
+      <p class="hint" style="margin:0;">Crear y activar temporadas (historial)</p>
+    </div>
+  </a>
+</div>
+
+<div class="card" style="margin-top:20px;">
+  <h2>🤖 Asistente IA (subir resultados)</h2>
+  <p class="hint">Pega aquí el resultado en texto y se interpretará automáticamente:</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input type="text" id="ia-texto" placeholder="Ej: Puma Titans 3 - 2 Neon Wolves" style="flex:1;min-width:240px;">
+    <button class="btn btn-cyan" onclick="irAIA()">🤖 Abrir asistente IA</button>
+  </div>
+  <div id="ia-preview" style="margin-top:10px;"></div>
+</div>
+
+<script>
+function irAIA() {
+  const val = document.getElementById('ia-texto').value;
+  window.location.href = '{{ url_for("admin_resultados") }}?texto=' + encodeURIComponent(val);
+}
+</script>
+{% endblock %}

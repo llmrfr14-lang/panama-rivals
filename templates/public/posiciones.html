@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Posiciones · Liga Rocket League{% endblock %}
+{% block content %}
+
+<div class="page-title">Tabla de posiciones</div>
+<p class="page-sub">Clasificación de la temporada. Ganar = 3 puntos, perder = 0. 📋</p>
+
+{% if tabla %}
+<div class="card">
+  <div class="table-wrap">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>#</th><th>Equipo</th>
+          <th class="num">PTS</th><th class="num">PJ</th><th class="num">PG</th>
+          <th class="num">PE</th><th class="num">PP</th>
+          <th class="num">GF</th><th class="num">GC</th><th class="num">DG</th>
+          <th>Racha</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in tabla %}
+        <tr>
+          <td class="pos pos-{{ f.pos }}">{{ f.pos }}</td>
+          <td>
+            <a href="{{ url_for('equipo_detalle', eid=f.equipo_id) }}" style="display:flex;align-items:center;gap:8px;color:var(--text);">
+              <span class="dot" style="background:{{ f.color }}"></span>{{ f.nombre }}
+            </a>
+          </td>
+          <td class="num pts-col">{{ f.pts }}</td>
+          <td class="num">{{ f.pj }}</td>
+          <td class="num">{{ f.pg }}</td>
+          <td class="num">{{ f.pe }}</td>
+          <td class="num">{{ f.pp }}</td>
+          <td class="num">{{ f.gf }}</td>
+          <td class="num">{{ f.gc }}</td>
+          <td class="num">{{ f.dg }}</td>
+          <td class="racha">
+            {% for c in f.racha %}<span class="{{ c }}">{{ c }}</span>{% endfor %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card empty-state">
+  <div class="big">📋</div>
+  <h3>Sin equipos todavía</h3>
+  <p>Cuando se inscriban equipos y jueguen partidos, aquí aparecerá la tabla.</p>
+</div>
+{% endif %}
+{% endblock %}

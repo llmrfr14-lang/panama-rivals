@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Equipos · Panel{% endblock %}
+{% block content %}
+
+<div class="page-title">🚗 Equipos ({{ temporada.nombre }})</div>
+<p class="page-sub">Crea los equipos y agrega sus jugadores.</p>
+
+<div class="card" style="margin-bottom:20px;">
+  <h2>➕ Crear equipo</h2>
+  <form method="POST" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
+    <div style="flex:1;min-width:180px;">
+      <label>Nombre</label>
+      <input type="text" name="nombre" placeholder="Nombre del equipo" required>
+    </div>
+    <div style="width:90px;">
+      <label>Abreviatura</label>
+      <input type="text" name="abrev" placeholder="ABC" maxlength="5">
+    </div>
+    <div style="width:70px;">
+      <label>Color</label>
+      <input type="color" name="color" value="#2ecc71" style="padding:4px;height:42px;">
+    </div>
+    <input type="hidden" name="accion" value="crear">
+    <button class="btn btn-green" type="submit">Crear</button>
+  </form>
+</div>
+
+{% for e in equipos %}
+<div class="card" style="margin-bottom:14px;">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+    <span class="team-logo" style="width:40px;height:40px;font-size:16px;margin:0;background:{{ e.color }};border-radius:10px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:900;">{{ e.abrev[:2] }}</span>
+    <strong style="font-size:17px;flex:1;">{{ e.nombre }}</strong>
+    <button class="btn btn-sm btn-ghost" onclick="document.getElementById('edit-{{ e.id }}').style.display = document.getElementById('edit-{{ e.id }}').style.display == 'block' ? 'none' : 'block';">✏️ Editar</button>
+    <form method="POST" onsubmit="return confirm('¿Eliminar equipo {{ e.nombre }}?')">
+      <input type="hidden" name="accion" value="eliminar">
+      <input type="hidden" name="equipo_id" value="{{ e.id }}">
+      <button class="btn btn-sm btn-danger">🗑️</button>
+    </form>
+  </div>
+
+  <div id="edit-{{ e.id }}" style="display:none;background:var(--bg2);padding:12px;border-radius:10px;margin-bottom:10px;">
+    <form method="POST" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
+      <div style="flex:1;min-width:170px;">
+        <label>Nombre</label>
+        <input type="text" name="nombre" value="{{ e.nombre }}" required>
+      </div>
+      <div style="width:90px;">
+        <label>Abrev.</label>
+        <input type="text" name="abrev" value="{{ e.abrev }}" maxlength="5">
+      </div>
+      <div style="width:70px;">
+        <label>Color</label>
+        <input type="color" name="color" value="{{ e.color }}" style="padding:4px;height:42px;">
+      </div>
+      <input type="hidden" name="accion" value="editar">
+      <input type="hidden" name="equipo_id" value="{{ e.id }}">
+      <button class="btn btn-sm" type="submit">Guardar</button>
+    </form>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <span style="color:var(--muted);font-size:13px;">👥 Jugadores:</span>
+    {% for j in e.jugadores %}
+    <span style="display:inline-flex;align-items:center;gap:6px;background:var(--bg2);padding:4px 10px;border-radius:20px;font-size:13px;">
+      {{ '👑' if j.es_capitan else '' }} {{ j.nombre }}
+      <form method="POST" action="{{ url_for('admin_jugadores', eid=e.id) }}" style="display:inline;margin:0;" onsubmit="return confirm('¿Eliminar a {{ j.nombre }}?')">
+        <input type="hidden" name="accion" value="eliminar">
+        <input type="hidden" name="jugador_id" value="{{ j.id }}">
+        <button type="submit" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;">✕</button>
+      </form>
+    </span>
+    {% endfor %}
+  </div>
+
+  <form method="POST" action="{{ url_for('admin_jugadores', eid=e.id) }}" style="display:flex;gap:8px;margin-top:10px;align-items:end;">
+    <div style="flex:1;">
+      <label>Agregar jugador</label>
+      <input type="text" name="nombre" placeholder="Nombre del jugador" required>
+    </div>
+    <label style="font-size:13px;display:flex;align-items:center;gap:4px;margin-bottom:10px;">
+      <input type="checkbox" name="es_capitan" value="1" style="width:auto;"> Capitán
+    </label>
+    <input type="hidden" name="accion" value="agregar">
+    <button class="btn btn-sm btn-cyan" type="submit">+ Agregar</button>
+  </form>
+</div>
+{% else %}
+<div class="card empty-state">
+  <div class="big">🚗</div>
+  <h3>Aún no hay equipos</h3>
+  <p>Crea el primer equipo usando el formulario de arriba.</p>
+</div>
+{% endfor %}
+{% endblock %}

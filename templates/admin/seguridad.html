@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Seguridad · Panel{% endblock %}
+{% block content %}
+
+<div class="page-title">🔐 Seguridad</div>
+<p class="page-sub">Cambia tu clave de administrador.</p>
+
+<div class="card" style="max-width:480px;">
+  <h2>Cambiar clave</h2>
+  <form method="POST" action="{{ url_for('admin_cambiar_clave') }}">
+    <label>Clave actual</label>
+    <input type="password" name="actual" required>
+
+    <label>Clave nueva</label>
+    <input type="password" name="nueva" required minlength="4">
+
+    <label>Repetir clave nueva</label>
+    <input type="password" name="confirmar" required minlength="4">
+
+    <button class="btn" type="submit">Actualizar clave</button>
+  </form>
+  <p style="margin-top:14px;font-size:13px;color:var(--muted);">
+    💡 Consejo: usa una clave fácil de recordar pero no obvia (no "1234").
+  </p>
+</div>
+{% endblock %}
