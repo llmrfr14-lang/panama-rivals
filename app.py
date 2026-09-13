@@ -663,6 +663,29 @@ def robots():
     return "User-agent: *\nDisallow: /admin\n", 200, {"Content-Type": "text/plain"}
 
 
+@app.route("/healthz")
+def healthz():
+    """Endpoint de salud: comprueba que la DB responde y el OCR está listo.
+
+    Usado por el servicio de hosting (Render/Railway/Fly) para
+    monitorear que la web esté viva y reiniciarla si algo falla.
+    """
+    db_ok = True
+    try:
+        with database.get_db() as db:
+            db.execute("SELECT 1").fetchone()
+    except Exception:
+        db_ok = False
+    status = 200 if db_ok else 503
+    activa = services.temporada_activa()
+    return jsonify({
+        "ok": db_ok,
+        "db": db_ok,
+        "ocr": vision.disponible(),
+        "temporada": activa["nombre"] if activa else None,
+    }), status
+
+
 if __name__ == "__main__":
     database.init_db()
     # guardar admin pass por defecto en settings la primera vez

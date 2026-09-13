@@ -1,0 +1,41 @@
+# Configuración para Fly.io (creada como plantilla)
+# Uso:
+#   fly launch --copy-config --no-deploy
+#   fly volumes create liga_data --size 1
+#   fly deploy
+app = "panamarivals"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "12000"
+  # ← Cambia estas claves ANTES del primer deploy
+  SECRET_KEY = "cambia-esto-antes-de-desplegar-2026"
+  ADMIN_PASS = "admin1234"
+
+[[mounts]]
+  source = "liga_data"
+  destination = "/app/data"
+
+[http_service]
+  internal_port = 12000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[services.ports]]
+  handlers = ["http"]
+  port = 80
+
+[[services.ports]]
+  handlers = ["tls", "http"]
+  port = 443
+
+[checks]
+  [checks.healthz]
+    type = "http"
+    path = "/healthz"
+    interval = "30s"
