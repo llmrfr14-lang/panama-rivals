@@ -56,6 +56,7 @@ type Store = {
   ) => void;
   approve: (submissionId: string, stats?: StatLine[]) => void;
   decline: (submissionId: string, note?: string) => void;
+  fetchSubmissionEvidence: (submissionId: string) => Promise<{ photo?: string; replay?: string } | null>;
   teamById: (id: string | null) => Team | null;
   playerById: (id: string) => Player | undefined;
   rosterOf: (teamId: string | null) => Player[];
@@ -161,7 +162,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           const [regs, ms, subs, flags] = await Promise.all([
             sb.from("registrations").select("*").order("created_at"),
             sb.from("matches").select("*"),
-            sb.from("submissions").select("*").order("created_at"),
+            sb.from("submissions").select("id, match_id, submitted_by, home_score, away_score, stats, status, note, created_at").order("created_at"),
             sb.from("bracket_state").select("key").ilike("key", "bracket-regen-%"),
           ]);
           if (!cancelled && regs.data && ms.data && subs.data) {
@@ -189,10 +190,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Persist locally always — but only after hydration
+  // Persist locally always — but only after hydration. The photo/replay
+  // evidence columns are stripped: they're multi-MB base64 blobs that would
+  // blow the localStorage quota and bloat every offline cache.
   useEffect(() => {
     if (!hydrated) return;
-    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch { /* ignore */ }
+    try {
+      const lean: Persisted = {
+        ...state,
+        submissions: state.submissions.map(({ photo, replay, ...rest }) => rest),
+      };
+      localStorage.setItem(LS_KEY, JSON.stringify(lean));
+    } catch { /* ignore */ }
   }, [state, hydrated]);
 
   // Cross-tab realtime — another tab inthis browser writes localStorage → apply immediately.
@@ -226,7 +235,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "submissions" }, () => {
-        sb.from("submissions").select("*").order("created_at").then(({ data }) => {
+        sb.from("submissions").select("id, match_id, submitted_by, home_score, away_score, stats, status, note, created_at").order("created_at").then(({ data }) => {
           if (data) setState((s) => ({ ...s, submissions: data.map(subFromRow) }));
         });
       })
@@ -366,8 +375,6 @@ const bracketWinner = (m: Match): string | null => {
     const sf = matches.filter((m) => m.stage ==="sf" && m.groupId === division).sort((a, b) => a.id.localeCompare(b.id));
     const fin = matches.find((m) => m.stage ==="f" && m.groupId === division);
     const w = (m: Match | undefined) => (m ? bracketWinner(m) : null);
-    const q1 = w(qf[0]), q2 = w(qf[1]), q3 = w(qf[2]), q4 = w(qf[3]);
-    const s1 = w(sf[0]), s2 = w(sf[1]);
 
     const byId = new Map(matches.map((m) => [m.id, m]));
     const patch = (id: string, patch: Partial<Match>) => {
@@ -375,13 +382,26 @@ const bracketWinner = (m: Match): string | null => {
       if (prev) byId.set(id, { ...prev, ...patch });
     };
 
+    // No QF rounds: semis are seeded straight from groups. Only fill the final
+    // once BOTH semis have a winner so a single cleared result never clobbers
+    // the other side's seeded placeholder.
+    if (qf.length === 0) {
+      const s1 = w(sf[0]), s2 = w(sf[1]);
+      if (fin && s1 && s2) {
+        if ((fin.homeTeamId ?? null) !== s1 || (fin.awayTeamId ?? null) !== s2) patch(fin.id, { homeTeamId: s1, awayTeamId: s2 });
+      }
+      return [...byId.values()];
+    }
+
+    const q1 = w(qf[0]), q2 = w(qf[1]), q3 = w(qf[2]), q4 = w(qf[3]);
     sf.forEach((m, i) => {
       const home = i === 0 ? q1 : q3;
       const away = i === 0 ? q2 : q4;
       if ((m.homeTeamId ?? null) !== (home ?? null) || (m.awayTeamId ?? null) !== (away ?? null)) patch(m.id, { homeTeamId: home ?? null, awayTeamId: away ?? null });
     });
     if (fin && sf.length >= 2) {
-      if ((fin.homeTeamId ?? null) !== (s1 ?? null) || (fin.awayTeamId ?? null) !== (s2 ?? null)) patch(fin.id, { homeTeamId: s1 ?? null, awayTeamId: s2 ?? null });
+      const s1 = w(sf[0]), s2 = w(sf[1]);
+      if (s1 && s2 && ((fin.homeTeamId ?? null) !== s1 || (fin.awayTeamId ?? null) !== s2)) patch(fin.id, { homeTeamId: s1, awayTeamId: s2 });
     }
 
     return [...byId.values()];
@@ -393,12 +413,12 @@ const bracketWinner = (m: Match): string | null => {
     setState((s) => {
       const divRegs = s.registrations.filter((r) => r.division === division);
       const groupsWithTeams = ["A", "B", "C", "D"].map((g) => `${division}-${g}`).filter((gid) => divRegs.some((r) => r.groupId === gid));
-      const needsQF = groupsWithTeams.length === 4;
-      if (!needsQF && groupsWithTeams.length !== 1) return s;
-      const seeds = bracketSeeds(division, s.matches, s.registrations); if (!seeds) return s; if (!needsQF) { if (!seeds?.fin) return s; } else { if (!seeds?.qf) return s; }
-      const canFinal = Boolean(seeds?.fin);
-      const canQF = Boolean(seeds?.qf);
-      if ((needsQF && !canQF) || (!needsQF && !canFinal)) return s;
+      const groupCount = groupsWithTeams.length;
+      if (groupCount !== 1 && groupCount !== 2 && groupCount !== 4) return s;
+      const seeds = bracketSeeds(division, s.matches, s.registrations); if (!seeds) return s;
+      if (groupCount === 4 && !seeds?.qf) return s;
+      if (groupCount === 2 && !seeds?.sf) return s;
+      if (groupCount === 1 && !seeds?.fin) return s;
 
       const at = startAt ?? Date.now() + 15 * 60 *   1000;
       const keep = s.matches.filter((m) => m.stage === "group" || m.status !== "scheduled");
@@ -420,13 +440,16 @@ const bracketWinner = (m: Match): string | null => {
         });
       };
 
-      if (needsQF && canQF) {
+      if (groupCount === 4) {
         seeds.qf!.forEach((p,i) => pushMatch("qf", i,p.home, p.away));
         const r1 = seeds.qf![1], r2 = seeds.qf![0], r3 = seeds.qf![3], r4 = seeds.qf![2];
         pushMatch("sf", 0, r1.home, r1.away);
         pushMatch("sf", 1, r3.home, r3.away);
         pushMatch("f",  0,(seeds.fin?.home ?? seeds.qf![0].home), (seeds.fin?.away ?? seeds.qf![1].away));
-      } else if (!needsQF && canFinal) {
+      } else if (groupCount === 2) {
+        seeds.sf!.forEach((p,i) => pushMatch("sf", i, p.home, p.away));
+        pushMatch("f",  0, seeds.fin!.home, seeds.fin!.away);
+      } else if (groupCount === 1) {
         pushMatch("f",  0, seeds.fin!.home, seeds.fin!.away);
       }
 
@@ -516,6 +539,16 @@ const bracketWinner = (m: Match): string | null => {
     if (match) upsertMatch({ ...match, status: "declined" });
   };
 
+  // Photo/replay are multi-MB base64 data URLs, so they're excluded from the
+  // global hydration fetch to keep it fast. The admin pulls them on demand only
+  // when a report needs verification.
+  const fetchSubmissionEvidence: Store["fetchSubmissionEvidence"] = async (submissionId) => {
+    if (!sb) return null;
+    const { data } = await sb.from("submissions").select("id, photo, replay").eq("id", submissionId).single();
+    if (!data) return null;
+    return { photo: data.photo ?? undefined, replay: data.replay ?? undefined };
+  };
+
   const teamById: Store["teamById"] = (id) => {
     if (!id) return null;
     const staticTeam = seedTeams.find((t) => t.id === id);
@@ -567,6 +600,7 @@ const bracketWinner = (m: Match): string | null => {
         reviewRegistration,
         deleteRegistration,
         decline,
+        fetchSubmissionEvidence,
         teamById,
         playerById,
         rosterOf,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { Match } from "@/lib/types";
 
@@ -60,6 +61,14 @@ function MatchCard({ m, teamById, myTeam, now, innerRef }: {
           )}
           {m.status === "declined" && (
             <p className="text-xs text-slate-500">{t("bracket.declined")}</p>
+          )}
+          {m.status !== "scheduled" && m.status !== "declined" ? null : (
+            <Link
+              href={`/report/${encodeURIComponent(m.id)}`}
+              className="soft-ring mt-1 inline-block rounded-full bg-rivals-red px-3 py-1 text-xs font-bold text-white transition hover:brightness-110"
+            >
+              {t("div.report")}
+            </Link>
           )}
         </div>
       )}

@@ -74,16 +74,28 @@ export function standingsFor(groupId: string, division: Division, matches: Match
 
 export type BracketPairing = { home: string; away: string };
 
-/** Group seeds per division. 2 groups -> straight final; 4 groups -> QF. */
-export function bracketSeeds(division: Division, matches: Match[], registrations: { id: string; division?: Division }[]): { qf?: BracketPairing[]; fin?: BracketPairing } | null {
+export type BracketSeeds = {
+  qf?: BracketPairing[];
+  sf?: BracketPairing[]; // 2 groups -> top 2 per group -> semis + final
+  fin?: BracketPairing;
+};
+
+/** Group seeds per division. 2 groups (8-10 teams) -> semis + final; 4 groups (11-23) -> QF. */
+export function bracketSeeds(division: Division, matches: Match[], registrations: { id: string; division?: Division }[]): BracketSeeds | null {
   const s = ["A", "B", "C", "D"].map((g) => standingsFor(g, division, matches, registrations));
   const has = s.filter((t) => t.length >= 1);
   if (has.length === 0) return null;
-  // <=10 teams per division -> 2 groups -> straight final.
+  // 8-10 teams per division -> 2 groups -> semis: A1 vs B2, B1 vs A2.
   if (has.length === 2) {
-    return { fin: { home: s[0][0].teamId, away: s[1][0].teamId } };
+    return {
+      sf: [
+        { home: s[0][0].teamId, away: s[1][1].teamId }, // A1 vs B2
+        { home: s[1][0].teamId, away: s[0][1].teamId }, // B1 vs A2
+      ],
+      fin: { home: s[0][0].teamId, away: s[1][0].teamId }, // placeholder; filled by SF winners
+    };
   }
-  // 11-23 teams ->  ạ4 groups -> quarterfinals.
+  // 11-23 teams -> 4 groups -> quarterfinals.
   if (has.length === 4 && has.every((t) => t.length >= 2)) {
     return {
       qf: [
@@ -92,6 +104,7 @@ export function bracketSeeds(division: Division, matches: Match[], registrations
         { home: s[2][0].teamId, away: s[3][1].teamId }, // C1 vs D2
         { home: s[3][0].teamId, away: s[2][1].teamId }, // D1 vs C2
       ],
+      fin: { home: s[0][0].teamId, away: s[1][0].teamId }, // placeholder; filled by SF winners
     };
   }
   return {};
