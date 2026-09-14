@@ -270,7 +270,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (groupIds.length === 0) continue;
       const gms = state.matches.filter((m) => m.stage ==="group" && m.groupId && groupIds.includes(m.groupId));
       const hasAll = gms.length > 0 && gms.every((m) => m.status ==="approved" || m.status ==="ff");
-      const hasBracket = state.matches.some((m) => m.stage !== "group" && m.groupId === div && m.status !== "scheduled");
+      // Bracket considered present once ANY knockout row exists for the division —
+      // including "scheduled" rows, otherwise this effect would regenerate on every
+      // render (each pass bumps the scheduled timestamps) and loop forever.
+      const hasBracket = state.matches.some((m) => m.stage !== "group" && m.groupId === div);
       const flagKey = `bracket-regen-${div}`;
       const flagged = state.bracketRegen.includes(flagKey);
       if (flagged || (hasAll && !hasBracket)) generateBracket(div);
@@ -427,7 +430,9 @@ const bracketWinner = (m: Match): string | null => {
       if (groupCount === 1 && !seeds?.fin) return s;
 
       const at = startAt ?? Date.now() + 15 * 60 *   1000;
-      const keep = s.matches.filter((m) => m.stage === "group" || m.status !== "scheduled");
+      // Keep ALL existing bracket rows (scheduled or not) so a re-run preserves
+      // the already-planned pairings/times instead of bumping them every pass.
+      const keep = s.matches.filter((m) => m.stage === "group" || m.groupId === division);
       const freshBracket: Match[] = [];
       const pushMatch = (stage: Stage, i: number, home: string | null, away: string | null) => {
         const id = `${division}-${stage}-${i}`;

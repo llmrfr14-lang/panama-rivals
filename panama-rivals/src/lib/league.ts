@@ -118,7 +118,9 @@ export function bracketSeeds(division: Division, matches: Match[], registrations
       fin: { home: s[0][0].teamId, away: s[1][0].teamId }, // placeholder; filled by SF winners
     };
   }
-  return {};
+  // Unsupported shape (1 group, 3 groups, or a 4-group where standings are
+  // incomplete) — signal "not ready" so callers bail instead of looping.
+  return null;
 }
 
 export type PlacementRow = {
