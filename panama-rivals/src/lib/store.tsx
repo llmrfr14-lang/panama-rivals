@@ -276,7 +276,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const hasBracket = state.matches.some((m) => m.stage !== "group" && m.groupId === div);
       const flagKey = `bracket-regen-${div}`;
       const flagged = state.bracketRegen.includes(flagKey);
-      if (flagged || (hasAll && !hasBracket)) generateBracket(div);
+      // The flag exists to force a one-time generation when a division has NO
+      // bracket yet. Never regenerate an existing bracket — otherwise concurrent
+      // clients that both see the flag (or a stale flag that gets re-created)
+      // overwrite each other's rows and the pairing flips back and forth.
+      if (!hasBracket && (flagged || (hasAll && !flagged))) generateBracket(div);
       if (flagged) {
         sb?.from("bracket_state").delete().eq("key", flagKey).then(() => {}, () => {});
         setState((s) => ({ ...s, bracketRegen: s.bracketRegen.filter((k) => k !== flagKey) }));
