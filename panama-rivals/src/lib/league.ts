@@ -85,15 +85,25 @@ export function bracketSeeds(division: Division, matches: Match[], registrations
   const s = ["A", "B", "C", "D"].map((g) => standingsFor(g, division, matches, registrations));
   const has = s.filter((t) => t.length >= 1);
   if (has.length === 0) return null;
-  // 8-10 teams per division -> 2 groups -> semis pair same ranks across groups
-  // (SF1: B2 vs A2, SF2: B1 vs A1) per the tournament format requested by the organizer.
+  // 8-10 teams per division -> 2 groups. Challenger pairs same ranks (SF1: B2 vs A2,
+  // SF2: B1 vs A1) per the organizer's request; Elite keeps the standard cross-seed
+  // (A1 vs B2, B1 vs A2) so group winners don't meet until the final.
   if (has.length === 2) {
+    if (division === "challenger") {
+      return {
+        sf: [
+          { home: s[1][1].teamId, away: s[0][1].teamId }, // B2 vs A2
+          { home: s[1][0].teamId, away: s[0][0].teamId }, // B1 vs A1
+        ],
+        fin: { home: s[0][0].teamId, away: s[1][0].teamId }, // A1 vs B1 placeholder; filled by SF winners
+      };
+    }
     return {
       sf: [
-        { home: s[1][1].teamId, away: s[0][1].teamId }, // B2 vs A2
-        { home: s[1][0].teamId, away: s[0][0].teamId }, // B1 vs A1
+        { home: s[0][0].teamId, away: s[1][1].teamId }, // A1 vs B2
+        { home: s[1][0].teamId, away: s[0][1].teamId }, // B1 vs A2
       ],
-      fin: { home: s[0][0].teamId, away: s[1][0].teamId }, // A1 vs B1 placeholder; filled by SF winners
+      fin: { home: s[0][0].teamId, away: s[1][0].teamId }, // placeholder; filled by SF winners
     };
   }
   // 11-23 teams -> 4 groups -> quarterfinals.
