@@ -22,6 +22,7 @@ const dict: Record<string, Record<Lang, string>> = {
   "bracket.nextUp": { es: "Tu próximo partido", en: "Your next match" },
   "bracket.startsAt": { es: "Inicia", en: "Starts" },
   "bracket.winsByFF": { es: "gana por W.O./FF (no-show)",en: "wins by forfeit (no-show" },
+  "bracket.declined": { es: "Resultado rechazado — repórtalo de nuevo", en: "Result declined — re-report it" },
   "bracket.emptyTitle": { es: "Aún no hay bracket", en: "No bracket yet" },
   "bracket.emptyBody": { es: "Se genera automáticamente cuando todos los partidos de grupos tengan resultado aprobado.", en: "It auto-generates once every group stage result has been approved." },
   "bracket.ranking": { es: "Ranking oficial", en: "Official ranking" },

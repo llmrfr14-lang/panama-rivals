@@ -332,11 +332,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const fresh = divisions.flatMap((div) =>
         ["A", "B", "C", "D"].flatMap((g) => groupMatchesFor(s.registrations, `${div}-${g}`))
       );
+      // Only add matches that don't already exist — re-running the generator
+      // after results are reported/approved must not resurrect scheduled duplicates.
+      const newMatches = fresh.filter((m) => !keptIds.has(m.id));
       const merged = [
         ...keep,
-        ...fresh,
+        ...newMatches,
       ];
-      fresh.forEach(upsertMatch);
+      newMatches.forEach(upsertMatch);
       return { ...s, matches: merged };
     });
   };
@@ -471,20 +474,31 @@ const bracketWinner = (m: Match): string | null => {
     const finalStats = stats ?? sub.stats ?? [];
     const approvedSub = { ...sub, status: "approved" as const, stats: finalStats };
     const match = state.matches.find((m) => m.id === sub.matchId);
+
+    // Mark the match approved, then recompute the SF/final pairings for
+    // knockout matches so the bracket auto-advances after each approval.
+    let nextMatches = state.matches.map((m) =>
+      m.id === sub.matchId
+        ? { ...m, homeScore: sub.homeScore, awayScore: sub.awayScore, stats: finalStats, status: "approved" as const }
+        : m
+    );
+    if (match?.stage !== "group" && match?.groupId) {
+      nextMatches = advanceBracketPure(match.groupId as Division, nextMatches);
+    }
+
     setState((s) => ({
       ...s,
       submissions: s.submissions.map((x) => (x.id === submissionId ? approvedSub : x)),
-      matches: s.matches.map((m) =>
-        m.id === sub.matchId
-          ? { ...m, homeScore: sub.homeScore, awayScore: sub.awayScore, stats: finalStats, status: "approved" }
-          : m
-      ),
+      matches: nextMatches,
     }));
     upsertSub(approvedSub);
     if (match) {
-      const advanced = { ...match, homeScore: sub.homeScore, awayScore: sub.awayScore, stats: finalStats, status: "approved" as const };
-      upsertMatch(advanced);
-      if (match.stage !== "group" && match.groupId) advanceBracketPure(match.groupId as Division, state.matches);
+      upsertMatch(nextMatches.find((m) => m.id === match.id) ?? match);
+      // Any KO SF/final pairings that changed get persisted so every device sees them.
+      nextMatches.forEach((m) => {
+        const prev = state.matches.find((old) => old.id === m.id);
+        if (prev && (prev.homeTeamId !== m.homeTeamId || prev.awayTeamId !== m.awayTeamId)) upsertMatch(m);
+      });
     }
   };
 

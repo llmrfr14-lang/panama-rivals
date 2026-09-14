@@ -63,7 +63,7 @@ export function Marquee() {
 
   return (
     <div className="relative z-10 border-y border-white/10 bg-white/[0.03] backdrop-blur-md">
-      <p className="sr-only">${t("home.marqueeLive")} — {items.map((i) => i.text).join(" · ")}</p>
+      <p className="sr-only">{t("home.marqueeLive")} — {items.map((i) => i.text).join(" · ")}</p>
       <div className="group flex overflow-hidden whitespace-nowrap py-3">
         <div className="marquee-track flex shrink-0 items-center">
           {strip}

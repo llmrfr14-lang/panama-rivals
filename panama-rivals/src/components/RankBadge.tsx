@@ -21,7 +21,7 @@ function tierFor(rank: string): Tier | null {
   if (r.includes("ssl") || r.includes("supersonic") || r.includes("leyenda")) return "ssl";
   if (r.includes("grandchamp") || r.includes("grancamp") || r.includes("grandcamp") || r.startsWith("gc")) return "gc";
   if (r.includes("champion") || r.includes("campeon") || r.includes("champ") || r.includes("camp")) return "champion";
-  if (/^c[0-9ivx]{0,,4}$/.test(r)) return "champion";
+  if (/^c[0-9ivx]{0,4}$/.test(r)) return "champion";
   if (/^d/.test(r)) return "diamond";
   if (/^pl/.test(r)) return "platinum";
   if (/^p/.test(r)) return "platinum";
