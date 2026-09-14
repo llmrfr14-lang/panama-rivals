@@ -204,6 +204,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     try {
       const lean: Persisted = {
         ...state,
+        bracketRegen: [],
         submissions: state.submissions.map(({ photo, replay, ...rest }) => rest),
       };
       localStorage.setItem(LS_KEY, JSON.stringify(lean));
@@ -218,7 +219,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (e.key !== LS_KEY || !e.newValue) return;
       try {
         const next = JSON.parse(e.newValue) as Persisted;
-        if (Array.isArray(next?.registrations)) setState({ ...next, bracketRegen: next.bracketRegen ?? [] });
+        if (Array.isArray(next?.registrations)) setState({ ...next, bracketRegen: [] });
       } catch { /* malformed */ }
     };
     window.addEventListener("storage", onStorage);
