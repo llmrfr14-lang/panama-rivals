@@ -151,9 +151,15 @@ exception when duplicate_object then null; end $$;
 
 
 -- Flip the watchdog flag when a division's group stage completes.
+-- SECURITY DEFINER: the client (anon role) updates matches, and this trigger
+-- inserts into bracket_state. anon only has SELECT/UPDATE on bracket_state, so
+-- without SECURITY DEFINER every match approval that reached an "approved"
+-- group status would fail its INSERT here and roll the whole UPDATE back
+-- (42501). Running as the function owner makes the watchdog flag atomic with
+-- the approval instead of silently blocking it.
 
 
-create or replace function bracket_flag_bracket_regen() returns trigger language plpgsql as $$
+create or replace function bracket_flag_bracket_regen() returns trigger language plpgsql security definer set search_path = public as $$
 begin
   if tg_table_name = 'matches' and new.status = 'approved' and new.stage = 'group' then
     insert into bracket_state(key, value, updated_at)

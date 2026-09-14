@@ -39,7 +39,8 @@ type Store = {
   registrations: Registration[];
   supabaseConfigured: boolean;
   hydrated: boolean;
- registerTeam: (teamName: string, captain: RivalContact, players: PlayerInfo[]) => Registration;
+  lastSyncError: string | null;
+  registerTeam: (teamName: string, captain: RivalContact, players: PlayerInfo[]) => Registration;
   assignGroup: (registrationId: string, groupId: string | null) => void;
   reviewRegistration: (registrationId: string, status: RegistrationStatus) => void;
   deleteRegistration: (registrationId: string) => void;
@@ -148,6 +149,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     registrations: [],
     bracketRegen: [],
   });
+  const [lastSyncError, setLastSyncError] = useState<string | null>(null);
+  const setSyncError = (msg: string) => {
+    console.error("supabase write failed:", msg);
+    setLastSyncError(msg);
+  };
 
   const sb = typeof window !== "undefined" ? getSupabase() : null;
 
@@ -279,15 +285,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const upsertReg = (r: Registration) => {
     if (!sb) return;
-    sb.from("registrations").upsert({ id: r.id, team_name: r.teamName, captain: r.captain, players: r.players, division: r.division ?? "challenger", group_id: r.groupId, status: r.status ?? "pending", created_at: r.createdAt }).then(() => {}, (e) => console.error("supabase upsert failed:", e));
+    sb.from("registrations").upsert({ id: r.id, team_name: r.teamName, captain: r.captain, players: r.players, division: r.division ?? "challenger", group_id: r.groupId, status: r.status ?? "pending", created_at: r.createdAt }).then(() => {}, (e) => setSyncError(`registrations.upsert: ${e?.message ?? e}`));
   };
   const upsertMatch = (m: Match) => {
     if (!sb) return;
-    sb.from("matches").upsert({ id: m.id, stage: m.stage, group_id: m.groupId ?? null, home_team_id: m.homeTeamId, away_team_id: m.awayTeamId, home_score: m.homeScore, away_score: m.awayScore, status: m.status, stats: m.stats, scheduled_at: m.scheduledAt ?? null, ff_winner: m.ffWinner ?? null }).then(() => {}, (e) => console.error("supabase upsert failed:", e));
+    sb.from("matches").upsert({ id: m.id, stage: m.stage, group_id: m.groupId ?? null, home_team_id: m.homeTeamId, away_team_id: m.awayTeamId, home_score: m.homeScore, away_score: m.awayScore, status: m.status, stats: m.stats, scheduled_at: m.scheduledAt ?? null, ff_winner: m.ffWinner ?? null }).then(() => {}, (e) => setSyncError(`matches.upsert ${m.id}: ${e?.message ?? e}`));
   };
   const upsertSub = (s: Submission) => {
     if (!sb) return;
-    sb.from("submissions").upsert({ id: s.id, match_id: s.matchId, submitted_by: s.submittedBy, home_score: s.homeScore, away_score: s.awayScore, stats: s.stats, status: s.status, note: s.note ?? null, photo: s.photo ?? null, replay: s.replay ?? null, created_at: s.createdAt }).then(() => {}, (e) => console.error("supabase upsert failed:", e));
+    sb.from("submissions").upsert({ id: s.id, match_id: s.matchId, submitted_by: s.submittedBy, home_score: s.homeScore, away_score: s.awayScore, stats: s.stats, status: s.status, note: s.note ?? null, photo: s.photo ?? null, replay: s.replay ?? null, created_at: s.createdAt }).then(() => {}, (e) => setSyncError(`submissions.upsert ${s.id}: ${e?.message ?? e}`));
   };
 
   const registerTeam: Store["registerTeam"] = (teamName, captain, players) => {
@@ -591,6 +597,7 @@ const bracketWinner = (m: Match): string | null => {
         registrations: state.registrations,
         hydrated,
         supabaseConfigured: Boolean(sb),
+        lastSyncError,
         registerTeam,
         assignGroup,
         generateSchedule,

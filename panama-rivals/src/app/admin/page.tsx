@@ -14,6 +14,7 @@ export default function AdminPage() {
     matches,
     registrations,
     supabaseConfigured,
+    lastSyncError,
     approve,
     reviewRegistration,
     deleteRegistration,
@@ -132,6 +133,13 @@ export default function AdminPage() {
           <code className="font-mono">NEXT_PUBLIC_SUPABASE_ANON_KEY</code>). Los registros
           solo viven en este navegador. Configúralas en{" "}
           <code className="font-mono">.env.example</code> para sincronizar entre dispositivos.
+
+        </p>
+      )}
+      {lastSyncError && (
+        <p className="mt-4 rounded-2xl border border-rose-400/40 bg-rose-500/10 px-4 py-3 text-xs text-rose-300">
+          ⚠️ Error al guardar en Supabase: <code className="font-mono">{lastSyncError}</code>.{" "}
+          La fila no se persistió; recarga y vuelve a intentar.
 
         </p>
       )}
