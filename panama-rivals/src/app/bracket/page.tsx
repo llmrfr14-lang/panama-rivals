@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
-import { placementFor, Division } from "@/lib/league";
+import { placementFor, bracketSeeds, Division } from "@/lib/league";
 import { useI18n } from "@/lib/i18n";
 import { BracketTree } from "@/components/BracketTree";
 import { BracketSkeleton } from "@/components/Skeleton";
@@ -49,9 +49,30 @@ export default function BracketPage() {
 
   const divMatches = useMemo(() => matches.filter((m) => m.groupId === div && m.stage !== "group"), [matches, div]);
   const qf = useMemo(() => divMatches.filter((m) => m.stage === "qf").sort((a, b) => a.id.localeCompare(b.id)), [divMatches]);
-  const sf = useMemo(() => divMatches.filter((m) => m.stage === "sf").sort((a, b) => a.id.localeCompare(b.id)), [divMatches]);
+  const rawSf = useMemo(() => divMatches.filter((m) => m.stage === "sf").sort((a, b) => a.id.localeCompare(b.id)), [divMatches]);
   const fin = useMemo(() => divMatches.find((m) => m.stage === "f"), [divMatches]);
   const ranking = useMemo(() => placementFor(div, matches, registrations), [div, matches, registrations]);
+
+  // The stored SF rows can be momentarily overwritten by a stale client running
+  // an old generator (the browse-side regen loop), flipping Challenger back to a
+  // cross-seed pairing. The pairing shown must always match the organizer's rule
+  // (Challenger: same-rank; Elite: cross-seed), so re-derive it from the current
+  // standings and override the display only if the rows disagree. Scores/status/FF
+  // from the stored rows are preserved; nothing is written back.
+  const sf = useMemo(() => {
+    if (div !== "challenger") return rawSf;
+    const seeds = bracketSeeds(div, matches, registrations);
+    if (!seeds?.sf || seeds.sf.length !== 2 || rawSf.length !== 2) return rawSf;
+    const correct = [
+      { home: seeds.sf[0].home, away: seeds.sf[0].away },
+      { home: seeds.sf[1].home, away: seeds.sf[1].away },
+    ];
+    const same = correct.every((p, i) =>
+      (rawSf[i].homeTeamId ?? null) === (p.home ?? null) && (rawSf[i].awayTeamId ?? null) === (p.away ?? null)
+    );
+    if (same) return rawSf;
+    return rawSf.map((m, i) => ({ ...m, homeTeamId: correct[i].home, awayTeamId: correct[i].away }));
+  }, [div, rawSf, matches, registrations]);
 
   // Countdown ticker while the page is open.
 
