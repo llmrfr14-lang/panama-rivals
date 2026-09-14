@@ -23,10 +23,15 @@ export default function DivisionView({ division }: { division: Division }) {
       </div>
 
       <h2 className="mt-16 font-display text-4xl font-black">
-        {seeds?.fin ? t("div.final") : seeds?.qf ? t("div.qf") : t("div.knockout")}
+        {seeds?.fin ? t("div.final") : seeds?.qf ? t("div.qf") : seeds?.sf ? t("div.semis") : t("div.knockout")}
       </h2>
-      {seeds?.fin && <BracketFrame seeds={{ fin: seeds.fin }} meta={[t("div.final")]} labels={[["Final"]]} />}
-      {seeds?.qf && <BracketFrame seeds={seeds} meta={[t("div.qf"), t("div.semis"), t("div.final")]} labels={[["QF1", "QF2", "QF3", "QF4"], ["SF1", "SF2"], ["Final"]]} />}
+      {seeds?.fin && seeds?.sf && (
+        <BracketFrame seeds={{ sf: seeds.sf, fin: seeds.fin }} meta={[t("div.semis"), t("div.final")]} labels={[["SF1", "SF2"], ["Final"]]} division={division} />
+      )}
+      {seeds?.fin && !seeds?.sf && (
+        <BracketFrame seeds={{ fin: seeds.fin }} meta={[t("div.final")]} labels={[["Final"]]} division={division} />
+      )}
+      {seeds?.qf && <BracketFrame seeds={seeds} meta={[t("div.qf"), t("div.semis"), t("div.final")]} labels={[["QF1", "QF2", "QF3", "QF4"], ["SF1", "SF2"], ["Final"]]} division={division} />}
 
       <h2 className="mt-16 font-display text-3xl font-black">Leaderboard</h2>
       <div className="mt-4 overflow-x-auto rounded-xl border border-rivals-border">
@@ -141,30 +146,68 @@ function GroupTable({ division, groupKey }: { division: Division; groupKey: stri
   );
 }
 
-function BracketFrame({ seeds, meta, labels }: { seeds: { qf?: { home: string; away: string }[]; fin?: { home: string; away: string } }; meta: string[]; labels: string[][] }) {
-  const { teamById } = useStore();
+function BracketFrame({ seeds, meta, labels, division }: {
+  seeds: { qf?: { home: string; away: string }[]; sf?: { home: string; away: string }[]; fin?: { home: string; away: string } };
+  meta: string[];
+  labels: string[][];
+  division: Division;
+}) {
+  const { t } = useI18n();
+  const { teamById, matches } = useStore();
+  const byStage = (stage: "qf" | "sf" | "f") =>
+    matches.filter((m) => m.stage === stage && m.groupId === division).sort((a, b) => a.id.localeCompare(b.id));
+
+  // Rendering order: each row is a live match card; falls back to seed text when no match exists yet.
+  const roundOf = (stage: "qf" | "sf" | "f", label: string, seed: { home: string; away: string } | undefined, i: number) => {
+    const live = byStage(stage)[i];
+    const homeName = live ? teamById(live.homeTeamId)?.name : seed?.home ? teamById(seed.home)?.name : undefined;
+    const awayName = live ? teamById(live.awayTeamId)?.name : seed?.away ? teamById(seed.away)?.name : undefined;
+    return (
+      <div key={label} className="rounded border border-rivals-border/60 p-3">
+        <p className="text-xs uppercase tracking-widest text-slate-500">{label}</p>
+        <p className="mt-1 font-semibold">
+          {homeName ?? "TBD"} <span className="text-slate-500">vs</span> {awayName ?? "TBD"}
+        </p>
+        {live && (live.status === "scheduled" || live.status === "declined") && (
+          <Link
+            href={`/report/${encodeURIComponent(live.id)}`}
+            className="soft-ring mt-2 inline-block rounded-full bg-rivals-red px-3 py-1 text-xs font-bold text-white shadow-[0_4px_12px_rgba(230,57,70,0.3)] transition hover:brightness-110"
+          >
+            {t("div.report")}
+          </Link>
+        )}
+        {live?.status === "pending_review" && <p className="mt-2 text-xs font-semibold text-amber-400">{t("div.reviewing")}</p>}
+        {live?.status === "approved" && (
+          <p className="mt-2 font-mono font-bold text-rivals-gold">{live.homeScore}–{live.awayScore}</p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="mt-8 grid gap-6 md:grid-cols-3">
-      {meta.map((title, col) => (
-        <div key={title} className="glass-card rounded-3xl p-5">
-          <h3 className="font-display text-md font-bold text-rivals-red">{title}</h3>
-          <div className="mt-4 space-y-4">
-            {labels[col].map((label, i) => {
-              const seed = col === 0 ? seeds.qf?.[i] : col === 1 ? seeds.qf?.[i + 2] : seeds.fin;
-              const homeName = seed?.home ? teamById(seed.home)?.name : undefined;
-              const awayName = seed?.away ? teamById(seed.away)?.name : undefined;
-              return (
-                <div key={label} className="rounded border border-rivals-border/60 p-3">
-                  <p className="text-xs uppercase tracking-widest text-slate-500">{label}</p>
-                  <p className="mt-1 font-semibold">
-                    {homeName ?? "TBD"} <span className="text-slate-500">vs</span> {awayName ?? "TBD"}
-                  </p>
-                </div>
-              );
-            })}
+      {meta.map((title, col) => {
+        // Resolve each column's stage from what the seeds actually contain:
+        // qf+sf+final for 4 groups, sf+final for 2 groups, final-only for 1 group.
+        const stages: ("qf" | "sf" | "f")[] = seeds.qf
+          ? ["qf", "sf", "f"]
+          : seeds.sf
+            ? ["sf", "f"]
+            : ["f"];
+        const stage = stages[col] ?? "f";
+        return (
+          <div key={title} className="glass-card rounded-3xl p-5">
+            <h3 className="font-display text-md font-bold text-rivals-red">{title}</h3>
+            <div className="mt-4 space-y-4">
+              {labels[col].map((label, i) => {
+                if (stage === "qf") return roundOf("qf", label, seeds.qf?.[i], i);
+                if (stage === "sf") return roundOf("sf", label, seeds.sf?.[i], i);
+                return roundOf("f", label, seeds.fin, 0);
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

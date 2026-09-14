@@ -18,6 +18,7 @@ export default function AdminPage() {
     reviewRegistration,
     deleteRegistration,
     decline,
+    fetchSubmissionEvidence,
     teamById,
     assignGroup,
     generateSchedule,
@@ -40,6 +41,19 @@ export default function AdminPage() {
   const [checking, setChecking] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, Record<string, StatLine>>>({});
+  const [evidence, setEvidence] = useState<Record<string, { photo?: string; replay?: string } | null>>({});
+  const [evidenceLoading, setEvidenceLoading] = useState<Record<string, boolean>>({});
+
+  const loadEvidence = async (id: string) => {
+    if (evidence[id] !== undefined || evidenceLoading[id]) return;
+    setEvidenceLoading((e) => ({ ...e, [id]: true }));
+    try {
+      const ev = await fetchSubmissionEvidence(id);
+      setEvidence((e) => ({ ...e, [id]: ev }));
+    } finally {
+      setEvidenceLoading((e) => ({ ...e, [id]: false }));
+    }
+  };
 
   const setDraftLine = (subId: string, playerId: string, teamId: string, field: "goals" | "assists" | "saves" | "shots", value: number) => {
     setDrafts((d) => {
@@ -457,31 +471,45 @@ export default function AdminPage() {
                   ));
                 })()}
               </div>
-              {s.photo ? (
-                <div className="mt-3">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-                    Foto del marcador final — verifica que TODOS los jugadores aparecen
-                  </p>
-                  <a href={s.photo} target="_blank" rel="noreferrer" className="mt-1 inline-block">
-                    <img
-                      src={s.photo}
-                      alt="Marcador final"
-                      className="h-24 w-auto rounded-lg border border-white/10 object-contain hover:brightness-110"
-                    />
-                  </a>
-                </div>
-              ) : (
-                <p className="mt-3 text-xs text-amber-400">Sin foto del marcador</p>
-              )}
-              {s.replay ? (
-                <p className="mt-1 text-xs text-emerald-300">
-                  ✓ Replay adjunto:{" "}
-                  <a href={s.replay} download className="underline">
-                    descargar .replay
-                  </a>
-                </p>
-              ) : null}
-              <div className="mt-3 flex gap-2">
+              {(() => {
+                const ev = evidence[s.id];
+                if (ev === undefined) {
+                  return (
+                    <p className="mt-3 text-xs text-slate-500">
+                      {s.photo || s.replay ? "Evidencia subida — usa «Ver foto/replay»." : "Sin fotos ni replays adjuntos."}
+                    </p>
+                  );
+                }
+                return (
+                  <>
+                    {ev?.photo ? (
+                      <div className="mt-3">
+                        <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+                          Foto del marcador final — verifica que TODOS los jugadores aparecen
+                        </p>
+                        <a href={ev.photo} target="_blank" rel="noreferrer" className="mt-1 inline-block">
+                          <img
+                            src={ev.photo}
+                            alt="Marcador final"
+                            className="h-24 w-auto rounded-lg border border-white/10 object-contain hover:brightness-110"
+                          />
+                        </a>
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-xs text-amber-400">Sin foto del marcador</p>
+                    )}
+                    {ev?.replay ? (
+                      <p className="mt-1 text-xs text-emerald-300">
+                        ✓ Replay adjunto:{" "}
+                        <a href={ev.replay} download className="underline">
+                          descargar .replay
+                        </a>
+                      </p>
+                    ) : null}
+                  </>
+                );
+              })()}
+              <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   onClick={() => approve(
                     s.id,
@@ -501,6 +529,12 @@ export default function AdminPage() {
                   className="rounded border border-rivals-border px-4 py-2 text-sm font-bold hover:border-rivals-gold hover:text-rivals-gold"
                 >
                   {t("admin.decline")}
+                </button>
+                <button
+                  onClick={() => loadEvidence(s.id)}
+                  className="rounded border border-rivals-border px-4 py-2 text-sm font-bold text-rivals-blue hover:border-rivals-blue"
+                >
+                  {evidenceLoading[s.id] ? "Cargando…" : "Ver foto/replay"}
                 </button>
               </div>
             </div>
