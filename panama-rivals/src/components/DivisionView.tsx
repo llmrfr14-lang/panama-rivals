@@ -79,11 +79,19 @@ function GroupTable({ division, groupKey }: { division: Division; groupKey: stri
   const { t } = useI18n();
   const { matches, teamById, registrations } = useStore();
   const rows = standingsFor(groupKey, division, matches, registrations);
-  const groupMatches = matches.filter((m) => m.stage === "group" && m.groupId === `${division}-${groupKey}`);
+  const groupMatches = matches
+    .filter((m) => m.stage === "group" && m.groupId === `${division}-${groupKey}`)
+    .sort((a, b) => (a.round ?? 0) - (b.round ?? 0) || a.id.localeCompare(b.id));
+  const roundCount = groupMatches.reduce((max, m) => Math.max(max, m.round ?? 0), 0);
 
   return (
     <div className="glass-card rounded-3xl p-5">
       <h2 className="font-display text-lg font-bold text-rivals-gold">Group {groupKey}</h2>
+      {roundCount > 0 && (
+        <p className="mt-1 text-[11px] text-slate-500">
+          {t("div.orderTitle").replace("{n}", String(roundCount))}
+        </p>
+      )}
       {groupMatches.length > 0 && (
         <div className="mt-3 space-y-2 border-b border-rivals-border pb-4">
           {groupMatches.map((m) => (
@@ -92,6 +100,11 @@ function GroupTable({ division, groupKey }: { division: Division; groupKey: stri
               className="flex items-center justify-between gap-2 rounded border border-rivals-border/50 px-3 py-2 text-xs"
             >
               <span className="truncate">
+                {m.round ? (
+                  <span className="mr-1.5 rounded-full bg-rivals-gold/15 px-1.5 py-0.5 text-[10px] font-bold text-rivals-gold">
+                    J{m.round}
+                  </span>
+                ) : null}
                 {teamById(m.homeTeamId)?.name ?? "TBD"} <span className="text-slate-500">vs</span>{" "}
                 {teamById(m.awayTeamId)?.name ?? "TBD"}
               </span>

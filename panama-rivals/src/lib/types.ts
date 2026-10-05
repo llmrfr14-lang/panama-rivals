@@ -40,6 +40,8 @@ export type Match = {
   scheduledAt?: number;
   /** Knockout only: team that won by forfeit (no-show. */
   ffWinner?: string | null;
+  /** Group stage only: 1-based round-robin matchday (jornada). Teams in the same round never play at the same time as each other twice. */
+  round?: number;
 };
 
 export type SubmissionStatus = "pending" | "approved" | "declined";

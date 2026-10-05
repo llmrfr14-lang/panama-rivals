@@ -50,8 +50,8 @@ export function Marquee() {
       live.push({
         icon: "👥",
         text: lang === "es"
-          ? `${registrations.length} equipos inscritos · Temporada 2`
-          : `${registrations.length} teams registered · Season 2`,
+          ? `${registrations.length} equipos inscritos · Temporada 3`
+          : `${registrations.length} teams registered · Season 3`,
       });
     }
     live.push({ icon: "🏆", text: t("home.marqueePremier"), sub: lang === "es" ? "Próximo" : "Up next" });

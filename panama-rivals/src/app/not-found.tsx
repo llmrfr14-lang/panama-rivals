@@ -17,7 +17,7 @@ export default function NotFound() {
         Esta página no existe
       </h1>
       <p className="mt-3 max-w-md text-sm text-slate-400">
-        El balón se fue por la banda. Volvé a la cancha principal y seguí la Temporada 2.
+        El balón se fue por la banda. Volvé a la cancha principal y seguí la Temporada 3.
       </p>
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
         <Link
