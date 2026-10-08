@@ -3,6 +3,7 @@
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { Division } from "@/lib/league";
+import { hasPlatformId, platformIcon, platformLabel } from "@/lib/platforms";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import RankBadge from "@/components/RankBadge";
 
@@ -12,11 +13,20 @@ type TeamCardProps = {
   team: {
     id: string;
     teamName: string;
-    captain: { discord?: string; epicId?: string };
-    players: { epicId?: string; discord?: string; peakRank?: string }[];
+    captain: { discord?: string; epicId?: string; platform?: string; platformId?: string };
+    players: { epicId?: string; discord?: string; peakRank?: string; platform?: string; platformId?: string }[];
   };
   lang: "es" | "en";
 };
+
+function PlatformTag({ platform, platformId }: { platform?: string; platformId?: string }) {
+  if (!hasPlatformId(platformId)) return null;
+  return (
+    <span className="text-[11px] text-slate-500" title={platformLabel(platform)}>
+      {platformIcon(platform)} {platformId}
+    </span>
+  );
+}
 
 function TeamCard({ team, lang }: TeamCardProps) {
   return (
@@ -25,11 +35,15 @@ function TeamCard({ team, lang }: TeamCardProps) {
       <p className="mt-1 text-xs text-slate-500">
         Cap: {[team.captain.discord, team.captain.epicId].filter(Boolean).join(" · ") || "—"}
       </p>
+      <div className="mt-1">
+        <PlatformTag platform={team.captain.platform} platformId={team.captain.platformId} />
+      </div>
       <div className="mt-3 space-y-1 text-sm text-slate-300">
         {team.players.map((p, i) => (
           <div key={i} className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-rivals-blue" />
             <span className="font-medium">{p.epicId || p.discord || "NA"}</span>
+            <PlatformTag platform={p.platform} platformId={p.platformId} />
             <RankBadge rank={p.peakRank} lang={lang} />
           </div>
         ))}

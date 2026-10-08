@@ -9,12 +9,20 @@ import { getSupabase } from "./supabase/client";
 export type RivalContact = {
   discord: string;
   epicId: string;
+  /** Platform the player competes on: "epic" | "steam" | "psn" | "xbox" | "switch". */
+  platform?: string;
+  /** That platform's own handle (PSN ID, Xbox gamertag, Steam profile, Switch code). */
+  platformId?: string;
   phone?: string; // captain only
 };
 
 export type PlayerInfo = {
   discord: string;
   epicId: string;
+  /** Platform the player competes on: "epic" | "steam" | "psn" | "xbox" | "switch". */
+  platform?: string;
+  /** That platform's own handle (PSN ID, Xbox gamertag, Steam profile, Switch code). */
+  platformId?: string;
   phone: string; // "NA" when 2v2 3rd slot
   nationality: "pa" | "int" | "na";
   peakRank: string; // "NA" when 2v2 3rd slot

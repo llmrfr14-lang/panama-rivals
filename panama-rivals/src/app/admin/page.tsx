@@ -6,6 +6,7 @@ import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import type { Match, StatLine } from "@/lib/types";
 import type { Division } from "@/lib/league";
+import { hasPlatformId, platformIcon, platformIdLabel, platformLabel } from "@/lib/platforms";
 import { EvidenceLightbox } from "@/components/EvidenceLightbox";
 
 export default function AdminPage() {
@@ -199,7 +200,7 @@ export default function AdminPage() {
                   )}
                   <span className="mx-1.5 text-slate-600">·</span>
                   {r.players
-                    .map((p) => `${[p.discord, p.epicId].filter(Boolean).join(" / ") || "—"}${p.phone && p.phone !== "NA" ? " · 📞 " + p.phone : ""} ${p.nationality === "int" ? "🌎" : "🇵🇦"} ${p.peakRank || ""}`.trim())
+                    .map((p) => `${[p.discord, p.epicId].filter(Boolean).join(" / ") || "—"}${hasPlatformId(p.platformId) ? ` · ${platformIcon(p.platform)} ${platformIdLabel(p)}` : ""}${p.phone && p.phone !== "NA" ? " · 📞 " + p.phone : ""} ${p.nationality === "int" ? "🌎" : "🇵🇦"} ${p.peakRank || ""}`.trim())
                     .join(" · ")}
                 </p>
               </div>
@@ -266,6 +267,14 @@ export default function AdminPage() {
                       <dd className="break-all">{r.captain.epicId || "—"}</dd>
                     </div>
                     <div className="flex gap-2">
+                      <dt className="w-24 shrink-0 text-slate-500">Plataforma</dt>
+                      <dd className="break-all">
+                        {hasPlatformId(r.captain.platformId)
+                          ? `${platformIcon(r.captain.platform)} ${platformIdLabel(r.captain)}`
+                          : platformLabel(r.captain.platform) || "—"}
+                      </dd>
+                    </div>
+                    <div className="flex gap-2">
                       <dt className="w-24 shrink-0 text-slate-500">WhatsApp</dt>
                       <dd className="break-all">{r.captain.phone || "—"}</dd>
                     </div>
@@ -279,6 +288,11 @@ export default function AdminPage() {
                       <p className="text-xs text-slate-400 break-all">
                         {[p.discord, p.epicId].filter(Boolean).join(" / ") || "—"}
                       </p>
+                      {hasPlatformId(p.platformId) && (
+                        <p className="text-xs text-slate-400 break-all">
+                          {platformIcon(p.platform)} {platformIdLabel(p)}
+                        </p>
+                      )}
                       <p className="text-xs text-slate-500">
                         {p.phone && p.phone !== "NA" ? `📞 ${p.phone}` : "sin teléfono"}
                         {" · "}{p.nationality === "int" ? "🌎 Internacional" : "🇵🇦 Panamá"}

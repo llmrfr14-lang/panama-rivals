@@ -4,14 +4,16 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { divisionForRank } from "@/lib/league";
+import { platformIcon, platformLabel } from "@/lib/platforms";
 import { useStore, type PlayerInfo } from "@/lib/store";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import PlatformFields from "@/components/PlatformFields";
 
-type CaptainForm = { discord: string; epicId: string; phone: string };
-type PlayerForm = { discord: string; epicId: string; phone: string; nationality: string; peakRank: string };
+type CaptainForm = { discord: string; epicId: string; platform: string; platformId: string; phone: string };
+type PlayerForm = { discord: string; epicId: string; platform: string; platformId: string; phone: string; nationality: string; peakRank: string };
 
-const emptyCaptain = (): CaptainForm => ({ discord: "", epicId: "", phone: "" });
-const emptyPlayer = (): PlayerForm => ({ discord: "", epicId: "", phone: "", nationality: "", peakRank: "" });
+const emptyCaptain = (): CaptainForm => ({ discord: "", epicId: "", platform: "epic", platformId: "", phone: "" });
+const emptyPlayer = (): PlayerForm => ({ discord: "", epicId: "", platform: "epic", platformId: "", phone: "", nationality: "", peakRank: "" });
 
 const STEPS = [
   { id: "team", es: "Equipo", en: "Team" },
@@ -54,12 +56,13 @@ export default function RegisterPage() {
   const captainValid =
     form.captain.discord.trim().length >= 2 &&
     form.captain.epicId.trim().length >= 2 &&
+    form.captain.platformId.trim().length >= 2 &&
     form.captain.phone.trim().length >= 6;
   const playersValid = (() => {
     const slotValid = (p: PlayerForm, i: number) => {
-      const blank3 = i === 2 && !p.discord.trim() && !p.epicId.trim() && !p.phone.trim() && !p.nationality && !p.peakRank.trim();
+      const blank3 = i === 2 && !p.discord.trim() && !p.epicId.trim() && !p.platformId.trim() && !p.phone.trim() && !p.nationality && !p.peakRank.trim();
       if (i === 2 && blank3) return true;
-      return Boolean(p.discord.trim() && p.epicId.trim() && p.phone.trim() && p.peakRank.trim());
+      return Boolean(p.discord.trim() && p.epicId.trim() && p.platformId.trim() && p.phone.trim() && p.peakRank.trim());
     };
     return form.players.every((p, i) => slotValid(p, i));
   })();
@@ -90,14 +93,18 @@ export default function RegisterPage() {
   const normC = (c: CaptainForm) => ({
     discord: c.discord.trim(),
     epicId: c.epicId.trim(),
+    platform: c.platform,
+    platformId: c.platformId.trim(),
     phone: c.phone.trim(),
   });
   const normP = (p: PlayerForm, i: number): PlayerInfo => {
-    const blank3 = i === 2 && !p.discord.trim() && !p.epicId.trim() && !p.nationality && !p.peakRank.trim();
+    const blank3 = i === 2 && !p.discord.trim() && !p.epicId.trim() && !p.platformId.trim() && !p.nationality && !p.peakRank.trim();
     return {
       discord: blank3 ? "NA" : p.discord.trim(),
       phone: blank3 ? "NA" : p.phone.trim(),
       epicId: blank3 ? "NA" : p.epicId.trim(),
+      platform: blank3 ? "" : p.platform,
+      platformId: blank3 ? "NA" : p.platformId.trim(),
       nationality: blank3 ? "na" : ((p.nationality || "pa") as PlayerInfo["nationality"]),
       peakRank: blank3 ? "NA" : p.peakRank.trim(),
     };
@@ -117,12 +124,16 @@ export default function RegisterPage() {
     rows.push({ label: "División", value: elite ? "⚡ Elite (C3+)" : "🛡️ Challenger (≤C2)" });
     rows.push({ label: en ? "Captain (Discord)" : "Capitán (Discord)", value: form.captain.discord.trim() || "—" });
     rows.push({ label: "Epic Games", value: form.captain.epicId.trim() || "—" });
+    rows.push({
+      label: en ? "Platform" : "Plataforma",
+      value: `${platformIcon(form.captain.platform)} ${platformLabel(form.captain.platform)}${form.captain.platformId.trim() ? ` · ${form.captain.platformId.trim()}` : ""}`,
+    });
     rows.push({ label: en ? "WhatsApp" : "Teléfono", value: form.captain.phone.trim() || "—" });
     form.players.forEach((p, i) => {
-      if (!p.discord.trim() && !p.epicId.trim() && !p.phone.trim() && !p.nationality && !p.peakRank.trim()) return;
+      if (!p.discord.trim() && !p.epicId.trim() && !p.platformId.trim() && !p.phone.trim() && !p.nationality && !p.peakRank.trim()) return;
       rows.push({
         label: `${en ? "Player" : "Jugador"} ${i + 1}`,
-        value: `${p.discord.trim() || "—"} · ${p.epicId.trim() || "—"} · ${p.phone.trim() || "—"} · ${p.nationality === "int" ? "🌎" : "🇵🇦"} · ${p.peakRank.trim() || "—"}`,
+        value: `${p.discord.trim() || "—"} · ${p.epicId.trim() || "—"} · ${platformIcon(p.platform)} ${platformLabel(p.platform)}${p.platformId.trim() ? ` · ${p.platformId.trim()}` : ""} · ${p.phone.trim() || "—"} · ${p.nationality === "int" ? "🌎" : "🇵🇦"} · ${p.peakRank.trim() || "—"}`,
       });
     });
     return rows;
@@ -261,6 +272,14 @@ export default function RegisterPage() {
                 placeholder={en ? "E.g.: TitoRL" : "Ej: TitoRL"}
               />
             </label>
+            <PlatformFields
+              en={en}
+              platform={form.captain.platform}
+              platformId={form.captain.platformId}
+              onPlatform={(v) => setCaptain("platform", v)}
+              onPlatformId={(v) => setCaptain("platformId", v)}
+              className={inputCls}
+            />
             <label className="block">
               <span className="text-xs text-slate-400">
                 {en ? "Phone / WhatsApp" : "Teléfono / WhatsApp"}
@@ -277,8 +296,8 @@ export default function RegisterPage() {
             {touched && !captainValid && (
               <p className="text-xs font-semibold text-rose-400">
                 {en
-                  ? "Complete Discord, Epic ID and WhatsApp (min. 6 chars.)."
-                  : "Completa Discord, ID de Epic y WhatsApp (mín. 6 caracteres."}
+                  ? "Complete Discord, Epic ID, platform ID and WhatsApp (min. 6 chars.)."
+                  : "Completa Discord, ID de Epic, ID de plataforma y WhatsApp (mín. 6 caracteres)."}
               </p>
             )}
           </div>
@@ -322,6 +341,15 @@ export default function RegisterPage() {
                       placeholder={i === 2 ? "NA / vacío" : en ? "E.g.: RoosterRL" : "Ej: RoosterRL"}
                     />
                   </label>
+                  <PlatformFields
+                    en={en}
+                    platform={p.platform}
+                    platformId={p.platformId}
+                    onPlatform={(v) => setPlayer(i, "platform", v)}
+                    onPlatformId={(v) => setPlayer(i, "platformId", v)}
+                    className={inputCls}
+                    optional={i === 2}
+                  />
                   <label className="block">
                     <span className="text-xs text-slate-400">
                       {en ? "Is this player Panamanian?" : "¿Este jugador es panameño?"}
@@ -386,8 +414,8 @@ export default function RegisterPage() {
             {touched && !playersValid && (
               <p className="text-xs font-semibold text-rose-400">
                 {en
-                  ? "Players 1-2 need Discord, Epic ID, phone and peak rank. Player 3: leave empty for 2v2 or fill everything for 3v3."
-                  : "Los jugadores 1-2 necesitan Discord, ID Epic, teléfono y rank máximo.. Jugador 3: déjalo vacío si es 2v2 o complétalo para 3v3."}
+                  ? "Players 1-2 need Discord, Epic ID, platform ID, phone and peak rank. Player 3: leave empty for 2v2 or fill everything for 3v3."
+                  : "Los jugadores 1-2 necesitan Discord, ID Epic, ID de plataforma, teléfono y rank máximo. Jugador 3: déjalo vacío si es 2v2 o complétalo para 3v3."}
               </p>
             )}
           </div>
