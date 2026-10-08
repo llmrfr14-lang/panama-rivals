@@ -5,11 +5,10 @@ import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { Match } from "@/lib/types";
 
-function MatchCard({ m, teamById, myTeam, now, innerRef }: {
+function MatchCard({ m, teamById, myTeam, innerRef }: {
   m: Match;
    teamById:((id: string | null) => { name: string } | null);
   myTeam: string;
-   now: number;
    innerRef?:(el: HTMLDivElement | null) => void;
 }) {
   const { t } = useI18n();
@@ -20,9 +19,6 @@ function MatchCard({ m, teamById, myTeam, now, innerRef }: {
   const homeWon = m.status === "approved" ? m.homeScore > m.awayScore : m.status === "ff" ? m.ffWinner === m.homeTeamId : false;
   const awayWon = m.status === "approved" ? m.awayScore > m.homeScore : m.status === "ff" ? m.ffWinner === m.awayTeamId : false;
   const resolved = m.status === "approved" || m.status === "ff";
-
-  const scheduledUpcoming = Boolean(m.scheduledAt && m.scheduledAt > now) && !resolved;
-  
 
   const teamName = (id: string | null, won: boolean, lost: boolean) => (
     <span className={won ? "font-semibold text-emerald-300" : lost ? "text-slate-500 line-through" : "font-semibold text-slate-200"}>
@@ -54,11 +50,6 @@ function MatchCard({ m, teamById, myTeam, now, innerRef }: {
         </p>
       ) : (
         <div className="mt-2 space-y-2">
-          {scheduledUpcoming && m.scheduledAt && (
-            <p className="text-xs text-slate-500">
-              {t("bracket.startsAt")} {new Date(m.scheduledAt!).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-            </p>
-          )}
           {m.status === "declined" && (
             <p className="text-xs text-slate-500">{t("bracket.declined")}</p>
           )}
@@ -84,12 +75,11 @@ function bracketWinner(m: Match): string | null {
   return null;
 }
 
-function RoundColumn({ title, matches, teamById, myTeam, now, cardRefs, gap }: {
+function RoundColumn({ title, matches, teamById, myTeam, cardRefs, gap }: {
   title: string;
    matches: Match[];
    teamById:((id: string | null) => { name: string } | null);
   myTeam: string;
-   now: number;
    cardRefs?: ((el: HTMLDivElement | null) => void)[];
   gap: string;
 }) {
@@ -103,7 +93,6 @@ function RoundColumn({ title, matches, teamById, myTeam, now, cardRefs, gap }: {
             m={m}
             teamById={teamById}
             myTeam={myTeam}
-            now={now}
             innerRef={cardRefs?.[i] ? (el) => cardRefs![i](el) : undefined}
           />
         ))}
@@ -114,11 +103,10 @@ function RoundColumn({ title, matches, teamById, myTeam, now, cardRefs, gap }: {
 
 type Connector = { key: string; d: string; soft: boolean };
 
-export function BracketTree({ qf, sf, fin, teamById, myTeam, now, titles }: {
+export function BracketTree({ qf, sf, fin, teamById, myTeam, titles }: {
   qf: Match[]; sf: Match[]; fin: Match | null | undefined;
   teamById:((id: string | null) => { name: string } | null);
   myTeam: string;
-   now: number;
    titles: { qf: string; sf: string; fin: string };
 }) {
   const { t } = useI18n();
@@ -214,7 +202,7 @@ export function BracketTree({ qf, sf, fin, teamById, myTeam, now, titles }: {
 
 
 
-  }, [needsQf, hasSf, hasFin, qf.length, sf.length, now]);
+  }, [needsQf, hasSf, hasFin, qf.length, sf.length]);
 
 
   return (
@@ -229,7 +217,6 @@ export function BracketTree({ qf, sf, fin, teamById, myTeam, now, titles }: {
                   matches={qf}
                   teamById={teamById}
                   myTeam={myTeam}
-                  now={now}
                   gap="gap-4 md:gap-6"
                   cardRefs={qf.map((_, i) => (el) => { qfRefs.current[i] = el; })}
                 />
@@ -245,7 +232,6 @@ export function BracketTree({ qf, sf, fin, teamById, myTeam, now, titles }: {
                   matches={sf}
                   teamById={teamById}
                   myTeam={myTeam}
-                  now={now}
                   gap="gap-12 md:gap-16"
                   cardRefs={sf.map((_, i) => (el) => { sfRefs.current[i] = el; })}
                 />
@@ -261,7 +247,6 @@ export function BracketTree({ qf, sf, fin, teamById, myTeam, now, titles }: {
                   matches={[fin]}
                   teamById={teamById}
                   myTeam={myTeam}
-                  now={now}
                   gap="gap-0"
                   cardRefs={[(el) => { finRef.current = el; }]}
                 />

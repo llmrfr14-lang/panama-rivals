@@ -58,7 +58,7 @@ type Store = {
   reviewRegistration: (registrationId: string, status: RegistrationStatus) => void;
   deleteRegistration: (registrationId: string) => void;
   generateSchedule: () => void;
-  generateBracket: (division: Division, startAt?: number) => void;
+  generateBracket: (division: Division) => void;
   submitResult:(
     matchId: string,
     submittedBy: string,
@@ -537,7 +537,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
 
 
-  const generateBracket: Store["generateBracket"] = (division, startAt?) => {
+  const generateBracket: Store["generateBracket"] = (division) => {
     setState((s) => {
       const divRegs = s.registrations.filter((r) => r.division === division);
       const groupsWithTeams = ["A", "B", "C", "D"].map((g) => `${division}-${g}`).filter((gid) => divRegs.some((r) => r.groupId === gid));
@@ -548,7 +548,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (groupCount === 2 && !seeds?.sf) return s;
       if (groupCount === 1 && !seeds?.fin) return s;
 
-      const at = startAt ?? Date.now() + 15 * 60 * 1000;
       const existing = s.matches.filter((m) => m.stage !== "group" && m.groupId === division);
       const existingById = new Map(existing.map((m) => [m.id, m]));
       const freshBracket: Match[] = [];
@@ -556,15 +555,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const pushMatch = (stage: Stage, i: number, home: string | null, away: string | null) => {
         const id = `${division}-${stage}-${i}`;
         const prev = existingById.get(id);
-        // Keep the planned start time stable across re-generations unless the
-        // admin explicitly passed a new one.
-        const startAtMs = startAt ? at + i * 20 * 60 * 1000 : prev?.scheduledAt ?? at + i * 20 * 60 * 1000;
         // Keep a row that already carries a result (approved/ff) or a pending
         // report — never blow away a played match. Only re-seed rows that were
         // still scheduled (advanceBracketPure re-derives their pairings after).
         const settled = prev && (prev.status === "approved" || prev.status === "ff" || prev.status === "pending_review" || prev.status === "declined");
         if (settled) {
-          freshBracket.push({ ...prev, scheduledAt: startAtMs });
+          freshBracket.push(prev);
           return;
         }
         freshBracket.push({
@@ -577,7 +573,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           awayScore: 0,
           status: "scheduled",
           stats: [],
-          scheduledAt: startAtMs,
           ffWinner: null,
         });
       };

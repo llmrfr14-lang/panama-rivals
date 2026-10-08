@@ -66,8 +66,8 @@ export default function Home() {
 
   const upcoming = useMemo(() =>
     matches
-      .filter((m) => m.status === "scheduled" && typeof m.scheduledAt === "number")
-      .sort((a, b) => (a.scheduledAt ?? 0) - (b.scheduledAt ?? 0))
+      .filter((m) => m.status === "scheduled")
+      .sort((a, b) => (a.round ?? 0) - (b.round ?? 0) || a.id.localeCompare(b.id))
       .slice(0, 6),
     [matches]
   );
@@ -294,7 +294,7 @@ export default function Home() {
                   {lang === "en" ? "Matchday" : "Jornada"}
                 </p>
                 <h2 className="mt-2 font-display text-2xl font-black">
-                  {lang === "en" ? "Upcoming knockouts" : "Eliminatorias en vivo"}
+                  {lang === "en" ? "Upcoming matches" : "Próximos partidos"}
                 </h2>
               </div>
               <Link
@@ -420,16 +420,8 @@ const STAGE_LABELS: Record<Stage, { es: string; en: string }> = {
 function MatchCard({ m, teamById, lang, myTeamId }: { m: Match; teamById: (id: string | null) => { name: string } | null; lang: string; myTeamId: string | null }) {
   const home = teamById(m.homeTeamId);
   const away = teamById(m.awayTeamId);
-  const when = new Date(m.scheduledAt ?? 0);
-  const isToday = when.toDateString() === new Date().toDateString();
-  const isTomorrow = when.toDateString() === new Date(Date.now() + 86400000).toDateString();
-  const dayLabel = isToday
-    ? (lang === "en" ? "Today" : "Hoy")
-    : isTomorrow
-      ? (lang === "en" ? "Tomorrow" : "Mañana")
-      : when.toLocaleDateString(lang === "en" ? "en-US" : "es-PA", { day: "numeric", month: "short" });
   const stageLabel = STAGE_LABELS[m.stage][lang === "en" ? "en" : "es"];
-  const time = when.toLocaleTimeString(lang === "en" ? "en-US" : "es-PA", { hour: "2-digit", minute: "2-digit" });
+  const roundLabel = typeof m.round === "number" ? `${lang === "en" ? "Matchday" : "Jornada"} ${m.round}` : null;
 
   return (
     <div className="snap-center shrink-0 overflow-hidden rounded-3xl border border-rivals-border/60 bg-white/[0.03] p-5 backdrop-blur-md transition duration-300 hover:-translate-y-1 hover:bg-white/[0.06] hover:border-rivals-gold/40 md:shrink">
@@ -437,9 +429,11 @@ function MatchCard({ m, teamById, lang, myTeamId }: { m: Match; teamById: (id: s
         <span className="rounded-full bg-rivals-red/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-rivals-red">
           {stageLabel}
         </span>
-        <span className={isToday ? "rounded-full bg-emerald-500/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-400" : "rounded-full bg-white/5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-400"}>
-          {dayLabel}
-        </span>
+        {roundLabel && (
+          <span className="rounded-full bg-rivals-gold/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-rivals-gold">
+            {roundLabel}
+          </span>
+        )}
       </div>
       <div className="mt-4 flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1 truncate text-center">
@@ -447,7 +441,6 @@ function MatchCard({ m, teamById, lang, myTeamId }: { m: Match; teamById: (id: s
         </div>
         <div className="flex flex-col items-center px-1">
           <span className="font-display text-xl font-black text-rivals-gold">VS</span>
-          <span className="mt-1 text-[11px] font-medium text-slate-500">{time}</span>
         </div>
         <div className="min-w-0 flex-1 truncate text-center">
           <p className="truncate font-display text-lg font-bold text-white">{away?.name ?? "—"}</p>

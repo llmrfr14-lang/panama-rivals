@@ -43,7 +43,6 @@ export default function AdminPage() {
     if (!r.groupId) unassigned[(r.division ?? "challenger") as Division]++;
   }
   
-  const [startAt, setStartAt] = useState("");
   const [code, setCode] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [wrong, setWrong] = useState(false);
@@ -361,21 +360,12 @@ export default function AdminPage() {
           {(["challenger", "elite"] as const).map((d) => (
             <button
               key={d}
-              onClick={() => generateBracket(d, startAt ? new Date(startAt).getTime() : undefined)}
+              onClick={() => generateBracket(d)}
               className="soft-ring rounded-full bg-rivals-red/90 px-4 py-2 text-sm font-bold text-white transition hover:brightness-110"
             >
               {d === "challenger" ? "🛡️" : "⚡"} Generar bracket {d}
             </button>
           ))}
-          <label className="flex items-center gap-2 text-sm text-slate-400">
-            Inicio 15-min:
-            <input
-              type="datetime-local"
-              value={startAt}
-              onChange={(e) => setStartAt(e.target.value)}
-              className="soft-ring rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-sm backdrop-blur-md transition"
-            />
-          </label>
         </div>
       </div>
 
@@ -388,7 +378,7 @@ export default function AdminPage() {
         </p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           {(["challenger", "elite"] as const).map((d) => {
-            const ko = matches.filter((m) => m.groupId === d && m.stage !== "group").sort((a, b) => (a.scheduledAt ?? 0) - (b.scheduledAt ?? 0));
+            const ko = matches.filter((m) => m.groupId === d && m.stage !== "group");
             // Group rows are namespaced per division ("challenger-A"), so match the
             // prefix — the old `=== d` never matched and the panel always showed 0.
             const groupMs = matches.filter((m) => m.stage === "group" && m.groupId?.startsWith(`${d}-`));

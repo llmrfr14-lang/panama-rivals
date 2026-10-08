@@ -4,17 +4,6 @@ import { useMemo } from "react";
 import { useStore } from "@/lib/store";
 import { useI18n } from "@/lib/i18n";
 
-function timeLeft(ms: number, lang: string): string {
-  const h = Math.max(0, Math.floor(ms / 3_600_000));
-  const m = Math.max(0, Math.floor((ms % 3_600_000) / 60_000));
-  if (h >= 24) {
-    const d = Math.floor(h / 24);
-    return lang === "es" ? `${d}d · ${h % 24}h` : `${d}d · ${h % 24}h`;
-  }
-  if (h > 0) return lang === "es" ? `${h}h · ${m}m` : `${h}h · ${m}m`;
-  return lang === "es" ? `${m}m` : `${m}m`;
-}
-
 function Item({ icon, text, sub }: { icon: string; text: string; sub?: string }) {
   return (
     <span className="inline-flex items-center gap-2.5 px-6 text-sm font-semibold tracking-wide text-slate-200">
@@ -29,12 +18,11 @@ export function Marquee() {
   const { t, lang } = useI18n();
   const { matches, registrations, teamById } = useStore();
   const items = useMemo(() => {
-    const now = Date.now();
     const live: { icon: string; text: string; sub?: string }[] = [];
     for (const div of ["challenger", "elite"] as const) {
       const upcoming = matches
-        .filter((m) => m.stage !=="group" && m.groupId === div && m.status ==="scheduled" && (m.scheduledAt ?? 0) >= now)
-        .sort((a, b) => (a.scheduledAt ?? 0) - (b.scheduledAt ?? 0));
+        .filter((m) => (m.groupId === div || m.groupId?.startsWith(`${div}-`)) && m.status === "scheduled")
+        .sort((a, b) => (a.round ?? 0) - (b.round ?? 0) || a.id.localeCompare(b.id));
       if (upcoming.length > 0) {
         const m = upcoming[0];
         const home = teamById(m.homeTeamId)?.name ?? "TBD";
@@ -42,7 +30,7 @@ export function Marquee() {
         live.push({
           icon: div === "challenger" ? "🛡️" : "⚡",
           text: `${div === "challenger" ? t("nav.challenger") : t("nav.elite")} · ${home} vs ${away}`,
-          sub: timeLeft((m.scheduledAt ?? now) - now, lang),
+          sub: typeof m.round === "number" ? `${t("div.matchday")} ${m.round}` : undefined,
         });
       }
     }

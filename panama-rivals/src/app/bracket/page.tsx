@@ -21,7 +21,6 @@ export default function BracketPage() {
     return saved === "elite" ? "elite" : "challenger";
   });
   const [myTeam, setMyTeam] = useState<string>("");
-  const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -73,13 +72,6 @@ export default function BracketPage() {
     if (same) return rawSf;
     return rawSf.map((m, i) => ({ ...m, homeTeamId: correct[i].home, awayTeamId: correct[i].away }));
   }, [div, rawSf, matches, registrations]);
-
-  // Countdown ticker while the page is open.
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()),  1000);
-    return () => clearInterval(id);
-  }, []);
 
   const nextMatch = useMemo(() => {
     if (!myTeam) return null;
@@ -134,11 +126,6 @@ export default function BracketPage() {
             {teamById(nextMatch.homeTeamId)?.name ?? "TBD"} {" "}<span className="text-slate-500">vs</span>{" "}
             {teamById(nextMatch.awayTeamId)?.name ?? "TBD"}
           </p>
-          {nextMatch.scheduledAt && (
-            <p className="mt-1 text-sm text-slate-400">
-              {t("bracket.startsAt")} {" "}{new Date(nextMatch.scheduledAt).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})}
-            </p>
-          )}
         </div>
       )}
 
@@ -154,7 +141,6 @@ export default function BracketPage() {
             fin={fin}
             teamById={teamById}
             myTeam={myTeam}
-            now={now}
             titles={{ qf: t("div.qf"), sf: t("div.semis"), fin: t("div.final") }}
           />
         </div>
