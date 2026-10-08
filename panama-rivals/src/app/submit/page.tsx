@@ -8,9 +8,9 @@ export default function SubmitPage() {
   const { t } = useI18n();
   const { matches, submissions, teamById } = useStore();
 
-  const reportable = matches.filter(
-    (m) => m.stage === "group" && (m.status === "scheduled" || m.status === "declined")
-  );
+  const reportable = matches
+    .filter((m) => m.stage === "group" && (m.status === "scheduled" || m.status === "declined"))
+    .sort((a, b) => (a.round ?? 0) - (b.round ?? 0) || a.id.localeCompare(b.id));
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-16">
@@ -39,6 +39,7 @@ export default function SubmitPage() {
               className="flex items-center justify-between gap-3 glass-card rounded-3xl px-4 py-3"
             >
               <span className="text-sm font-semibold">
+                {m.round ? <span className="mr-1.5 rounded-full bg-rivals-gold/15 px-1.5 py-0.5 text-[10px] font-bold text-rivals-gold">J{m.round}</span> : null}
                 {teamById(m.homeTeamId)?.name} <span className="text-slate-500">vs</span>{" "}
                 {teamById(m.awayTeamId)?.name}
                 <span className="ml-2 text-xs uppercase tracking-widest text-slate-500">

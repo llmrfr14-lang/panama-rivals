@@ -7,7 +7,7 @@ export const groups: Group[] = [
   { id: "D", name: "Group D" },
 ];
 
-// Season 2 starts empty — teams appear when captains register.
+// Season 3 starts empty — teams appear when captains register.
 export const players: Player[] = [];
 export const teams: Team[] = [];
 

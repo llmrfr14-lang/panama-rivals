@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
+import { EvidenceLightbox } from "@/components/EvidenceLightbox";
 
 export default function ReportPage() {
   const params = useParams<{ matchId: string }>();
@@ -23,6 +24,7 @@ export default function ReportPage() {
   const [photoError, setPhotoError] = useState(false);
   const [replay, setReplay] = useState<string | null>(null);
   const [replayName, setReplayName] = useState("");
+  const [preview, setPreview] = useState(false);
 
   const onPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -104,7 +106,16 @@ export default function ReportPage() {
             className="mt-1 w-full soft-ring rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm backdrop-blur-md transition file:mr-3 file:rounded-full file:border-0 file:bg-rivals-blue file:px-4 file:py-2 file:text-white"
           />
           {photo && (
-            <img src={photo} alt="Marcador final" className="mt-2 h-24 w-auto rounded-lg border border-white/10 object-contain" />
+            <button type="button" onClick={() => setPreview(true)} className="mt-2 block" aria-label="Ampliar foto">
+              <img
+                src={photo}
+                alt="Marcador final"
+                className="h-24 w-auto cursor-zoom-in rounded-lg border border-white/10 object-contain transition hover:brightness-110"
+              />
+              <span className="mt-1 block text-[10px] font-semibold text-rivals-blue">
+                🔍 Toca para revisar antes de enviar
+              </span>
+            </button>
           )}
         </label>
         <label className="block">
@@ -148,6 +159,9 @@ export default function ReportPage() {
           </p>
         )}
       </form>
+      {preview && photo && (
+        <EvidenceLightbox photo={photo} replay={replay} replayName={replayName} onClose={() => setPreview(false)} />
+      )}
     </div>
   );
 }

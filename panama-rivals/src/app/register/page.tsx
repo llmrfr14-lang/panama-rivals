@@ -442,8 +442,8 @@ export default function RegisterPage() {
             <p className="emoji text-4xl">🎉</p>
             <p className="text-sm font-semibold text-emerald-300">
               {en
-                ? "✓ Your team is registered for Season 2. The admin assigns it to a group at the draw."
-                : "✓ Tu equipo quedó registrado para la Temporada 2. La admin lo asigna a un grupo en el sorteo."}
+                ? "✓ Your team is registered for Season 3. The admin assigns it to a group at the draw."
+                : "✓ Tu equipo quedó registrado para la Temporada 3. La admin lo asigna a un grupo en el sorteo."}
             </p>
             <Link
               href="/"
@@ -457,7 +457,7 @@ export default function RegisterPage() {
 
       {myReg && myReg.status === "approved" && (
         <div className="mt-4 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
-          <p>{en ? "Your team was accepted for Season 2." : "Tu equipo fue aceptado para la Temporada 2."}</p>
+          <p>{en ? "Your team was accepted for Season 3." : "Tu equipo fue aceptado para la Temporada 3."}</p>
           <Link
             href="/bracket"
             className="soft-ring mt-3 inline-flex items-center gap-2 rounded-full bg-rivals-gold px-4 py-1.5 text-xs font-bold text-[#0b111c] transition hover:brightness-110"

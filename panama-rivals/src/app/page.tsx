@@ -54,7 +54,7 @@ export default function Home() {
     return () => clearInterval(id);
   }, [paused]);
 
-  // Live Season 2 ranking — top 8 across both divisions (placement points per the official PDF).
+  // Live Season 3 ranking — top 8 across both divisions (placement points per the official PDF).
   const top8 = useMemo(() => {
     const divs: Division[] = ["challenger", "elite"];
     return divs
@@ -161,8 +161,8 @@ export default function Home() {
             <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rivals-blue" />
           </span>
           {lang === "en"
-            ? `${teamCount} teams in · Season 2`
-            : `${teamCount} equipos en · Temporada 2`}
+            ? `${teamCount} teams in · Season 3`
+            : `${teamCount} equipos en · Temporada 3`}
         </Link>
       </section>
 
@@ -313,7 +313,7 @@ export default function Home() {
         <Reveal className="relative mx-auto max-w-6xl px-4 pb-20">
           <p className="rivals-kicker-line mx-auto inline-flex items-center gap-3 text-center text-xs font-black uppercase tracking-[0.35em] text-rivals-gold">{t("bracket.ranking")}</p>
           <h2 className="mx-auto mt-3 max-w-2xl text-center font-display text-3xl font-black leading-tight tracking-tight md:text-5xl">
-            {lang === "en" ? "Live Season 2 Ranking" : "Ranking en vivo · Temporada 2"}
+            {lang === "en" ? "Live Season 3 Ranking" : "Ranking en vivo · Temporada 3"}
           </h2>
           <div className="mx-auto mt-10 max-w-2xl overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md">
             <table className="w-full text-sm">

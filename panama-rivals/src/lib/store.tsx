@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Match, Player, Stage, StatLine, Submission, Team } from "./types";
 import { initialMatches, players as seedPlayers, teams as seedTeams } from "./seed";
-import { bracketSeeds, divisionForRank, Division, teamDivision } from "./league";
+import { bracketSeeds, bracketWinner, divisionForRank, Division, roundRobinRounds, teamDivision } from "./league";
 import { getSupabase } from "./supabase/client";
 
 export type RivalContact = {
@@ -55,8 +55,16 @@ type Store = {
     photo?: string,
     replay?: string
   ) => void;
-  approve: (submissionId: string, stats?: StatLine[]) => void;
+  approve: (submissionId: string, stats?: StatLine[], homeScore?: number, awayScore?: number) => void;
   decline: (submissionId: string, note?: string) => void;
+  /** Admin: fix the score on a still-pending report before approving it. */
+  updateSubmissionScore: (submissionId: string, homeScore: number, awayScore: number) => void;
+  /** Admin: undo an approval and send the match back for a corrected report. */
+  reopenMatch: (matchId: string) => void;
+  /** Admin: directly overwrite an approved match's score (and clear a stale pending report). */
+  editApprovedResult: (matchId: string, homeScore: number, awayScore: number) => void;
+  /** Admin: wipe every registration/match/submission (cloud + local) to open a new season. */
+  archiveSeason: () => Promise<boolean>;
   fetchSubmissionEvidence: (submissionId: string) => Promise<{ photo?: string; replay?: string } | null>;
   teamById: (id: string | null) => Team | null;
   playerById: (id: string) => Player | undefined;
@@ -83,23 +91,27 @@ function groupMatchesFor(registrations: Registration[], groupId: string): Match[
     .filter((r) => r.groupId === groupId)
     .sort((a, b) => a.createdAt - b.createdAt)
     .map((r) => r.id);
-  const out: Match[] = [];
-  for (let i = 0; i < ids.length; i++) {
-    for (let j = i + 1; j < ids.length; j++) {
-      out.push({
-        id: `${groupId}-${i}-${j}`,
-        stage: "group",
-        groupId,
-        homeTeamId: ids[i],
-        awayTeamId: ids[j],
-        homeScore: 0,
-        awayScore: 0,
-        status: "scheduled",
-        stats: [],
-      });
-    }
-  }
-  return out;
+  // Round-robin order: matchday N pairs teams that are all free that jornada, so
+  // no team is booked twice at once. Pair ids stay keyed by the two team indices
+  // so re-generating after an admin reorders/registers teams doesn't collide.
+  const pairs = roundRobinRounds(ids);
+  return pairs.map((p) => {
+    const i = ids.indexOf(p.home);
+    const j = ids.indexOf(p.away);
+    const [lo, hi] = i < j ? [i, j] : [j, i];
+    return {
+      id: `${groupId}-${lo}-${hi}`,
+      stage: "group",
+      groupId,
+      homeTeamId: p.home,
+      awayTeamId: p.away,
+      homeScore: 0,
+      awayScore: 0,
+      status: "scheduled",
+      stats: [],
+      round: p.round,
+    } as Match;
+  });
 }
 
 // ---- Supabase row mappers ----
@@ -135,6 +147,7 @@ function matchFromRow(r: any): Match {
     stats: r.stats ?? [],
     scheduledAt: r.scheduled_at ?? undefined,
     ffWinner: r.ff_winner ?? null,
+    round: r.round_number ?? undefined,
   };
 }
 function subFromRow(r: any): Submission {
@@ -196,19 +209,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Persist locally always — but only after hydration. The photo/replay
-  // evidence columns are stripped: they're multi-MB base64 blobs that would
-  // blow the localStorage quota and bloat every offline cache.
+  // Persist locally after hydration. Evidence (photo/replay) is base64 and can
+  // be multi-MB, so we try to keep it (local-only mode needs it to view
+  // captures) and fall back to stripping it if the storage quota is exceeded.
   useEffect(() => {
     if (!hydrated) return;
+    const base: Persisted = { ...state, bracketRegen: [] };
+    const stripEvidence = (): Persisted => ({
+      ...base,
+      submissions: base.submissions.map(({ photo, replay, ...rest }) => rest),
+    });
     try {
-      const lean: Persisted = {
-        ...state,
-        bracketRegen: [],
-        submissions: state.submissions.map(({ photo, replay, ...rest }) => rest),
-      };
-      localStorage.setItem(LS_KEY, JSON.stringify(lean));
-    } catch { /* ignore */ }
+      localStorage.setItem(LS_KEY, JSON.stringify(base));
+    } catch {
+      try { localStorage.setItem(LS_KEY, JSON.stringify(stripEvidence())); } catch { /* give up */ }
+    }
   }, [state, hydrated]);
 
   // Cross-tab realtime — another tab inthis browser writes localStorage → apply immediately.
@@ -277,11 +292,27 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const hasBracket = state.matches.some((m) => m.stage !== "group" && m.groupId === div);
       const flagKey = `bracket-regen-${div}`;
       const flagged = state.bracketRegen.includes(flagKey);
-      // The flag exists to force a one-time generation when a division has NO
-      // bracket yet. Never regenerate an existing bracket — otherwise concurrent
-      // clients that both see the flag (or a stale flag that gets re-created)
-      // overwrite each other's rows and the pairing flips back and forth.
-      if (!hasBracket && (flagged || (hasAll && !flagged))) generateBracket(div);
+      // Only generate when there is no bracket yet (flag forces a one-time seed).
+      // Regenerating an existing bracket on every flag/approval is what made the
+      // pairings flip between clients — the admin's explicit button is the only
+      // path that re-seeds an existing tree.
+      if (!hasBracket && (flagged || hasAll)) {
+        generateBracket(div);
+      } else if (hasBracket) {
+        // A settled knockout result can arrive from another device (sync) while
+        // this client's next-round slot is still empty — advanceBracketPure only
+        // ran on the approving client. Re-derive the tree here (only when a slot
+        // actually changes, so we never loop) so every device converges.
+        const advanced = advanceBracketPure(div, state.matches);
+        const changed = advanced.filter((m) => {
+          const prev = state.matches.find((x) => x.id === m.id);
+          return prev && (prev.homeTeamId !== m.homeTeamId || prev.awayTeamId !== m.awayTeamId);
+        });
+        if (changed.length > 0) {
+          setState((s) => ({ ...s, matches: advanced }));
+          changed.forEach(upsertMatch);
+        }
+      }
       if (flagged) {
         sb?.from("bracket_state").delete().eq("key", flagKey).then(() => {}, () => {});
         setState((s) => ({ ...s, bracketRegen: s.bracketRegen.filter((k) => k !== flagKey) }));
@@ -297,7 +328,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
   const upsertMatch = (m: Match) => {
     if (!sb) return;
-    sb.from("matches").upsert({ id: m.id, stage: m.stage, group_id: m.groupId ?? null, home_team_id: m.homeTeamId, away_team_id: m.awayTeamId, home_score: m.homeScore, away_score: m.awayScore, status: m.status, stats: m.stats, scheduled_at: m.scheduledAt ?? null, ff_winner: m.ffWinner ?? null }).then(() => {}, (e) => setSyncError(`matches.upsert ${m.id}: ${e?.message ?? e}`));
+    const row: Record<string, unknown> = { id: m.id, stage: m.stage, group_id: m.groupId ?? null, home_team_id: m.homeTeamId, away_team_id: m.awayTeamId, home_score: m.homeScore, away_score: m.awayScore, status: m.status, stats: m.stats, scheduled_at: m.scheduledAt ?? null, ff_winner: m.ffWinner ?? null, round_number: m.round ?? null };
+    sb.from("matches").upsert(row).then(({ error }) => {
+      // A deploy can land before the round_number migration is applied. Retry
+      // without it so results still save instead of failing every write.
+      if (error && /round_number/i.test(error.message)) {
+        const { round_number, ...fallback } = row;
+        sb!.from("matches").upsert(fallback).then(() => {}, (e) => setSyncError(`matches.upsert ${m.id}: ${e?.message ?? e}`));
+        return;
+      }
+      if (error) setSyncError(`matches.upsert ${m.id}: ${error.message}`);
+    }, (e) => setSyncError(`matches.upsert ${m.id}: ${e?.message ?? e}`));
+  };
+  const deleteMatch = (id: string) => {
+    if (!sb) return;
+    sb.from("matches").delete().eq("id", id).then(() => {}, (e) => setSyncError(`matches.delete ${id}: ${e?.message ?? e}`));
   };
   const upsertSub = (s: Submission) => {
     if (!sb) return;
@@ -349,39 +394,24 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const generateSchedule: Store["generateSchedule"] = () => {
     setState((s) => {
-      const keep = s.matches.filter((m) => m.status !== "scheduled");
+      // Keep every knockout row (they're produced by the bracket generator, not
+      // here) and every group match that already has a result (approved/ff/
+      // pending_review/declined), so re-running never resurrects a played match
+      // or wipes the bracket. Scheduled group rows are replaced by the fresh
+      // round-robin copy; stale ones (a team left the group) are dropped.
+      const keep = s.matches.filter((m) => m.stage !== "group" || m.status !== "scheduled");
       const keptIds = new Set(keep.map((m) => m.id));
       const divisions: Division[] = ["challenger", "elite"];
       const fresh = divisions.flatMap((div) =>
         ["A", "B", "C", "D"].flatMap((g) => groupMatchesFor(s.registrations, `${div}-${g}`))
       );
-      // Only add matches that don't already exist — re-running the generator
-      // after results are reported/approved must not resurrect scheduled duplicates.
+      // Only add matches that don't already exist; persist each one with its jornada.
       const newMatches = fresh.filter((m) => !keptIds.has(m.id));
-      const merged = [
-        ...keep,
-        ...newMatches,
-      ];
+      const merged = [...keep, ...newMatches];
       newMatches.forEach(upsertMatch);
       return { ...s, matches: merged };
     });
   };
-
-const bracketWinner = (m: Match): string | null => {
-    if (m.ffWinner) return m.ffWinner;
-
-    if (m.status !== "approved") return null;
-    if (m.homeScore > m.awayScore) return m.homeTeamId;
-
-
-    if (m.awayScore > m.homeScore) return m.awayTeamId;
-
-    // Knockout final can't be a draw — if tied, leave unresolved for admin.
-    return null;
-  };
-
-
-
 
   // Pure: once QF/SF winners are known, fill the next round's pairings.
   const advanceBracketPure = (division: Division, matches: Match[]): Match[] => {
@@ -434,13 +464,25 @@ const bracketWinner = (m: Match): string | null => {
       if (groupCount === 2 && !seeds?.sf) return s;
       if (groupCount === 1 && !seeds?.fin) return s;
 
-      const at = startAt ?? Date.now() + 15 * 60 *   1000;
-      // Keep ALL existing bracket rows (scheduled or not) so a re-run preserves
-      // the already-planned pairings/times instead of bumping them every pass.
-      const keep = s.matches.filter((m) => m.stage === "group" || m.groupId === division);
+      const at = startAt ?? Date.now() + 15 * 60 * 1000;
+      const existing = s.matches.filter((m) => m.stage !== "group" && m.groupId === division);
+      const existingById = new Map(existing.map((m) => [m.id, m]));
       const freshBracket: Match[] = [];
+
       const pushMatch = (stage: Stage, i: number, home: string | null, away: string | null) => {
         const id = `${division}-${stage}-${i}`;
+        const prev = existingById.get(id);
+        // Keep the planned start time stable across re-generations unless the
+        // admin explicitly passed a new one.
+        const startAtMs = startAt ? at + i * 20 * 60 * 1000 : prev?.scheduledAt ?? at + i * 20 * 60 * 1000;
+        // Keep a row that already carries a result (approved/ff) or a pending
+        // report — never blow away a played match. Only re-seed rows that were
+        // still scheduled (advanceBracketPure re-derives their pairings after).
+        const settled = prev && (prev.status === "approved" || prev.status === "ff" || prev.status === "pending_review" || prev.status === "declined");
+        if (settled) {
+          freshBracket.push({ ...prev, scheduledAt: startAtMs });
+          return;
+        }
         freshBracket.push({
           id,
           stage,
@@ -448,41 +490,70 @@ const bracketWinner = (m: Match): string | null => {
           homeTeamId: home,
           awayTeamId: away,
           homeScore: 0,
-          awayScore:  0,
+          awayScore: 0,
           status: "scheduled",
           stats: [],
-          scheduledAt: at + i * 20 * 60 * 1000,
+          scheduledAt: startAtMs,
           ffWinner: null,
         });
       };
 
       if (groupCount === 4) {
-        seeds.qf!.forEach((p,i) => pushMatch("qf", i,p.home, p.away));
-        const r1 = seeds.qf![1], r2 = seeds.qf![0], r3 = seeds.qf![3], r4 = seeds.qf![2];
-        pushMatch("sf", 0, r1.home, r1.away);
-        pushMatch("sf", 1, r3.home, r3.away);
-        pushMatch("f",  0,(seeds.fin?.home ?? seeds.qf![0].home), (seeds.fin?.away ?? seeds.qf![1].away));
+        seeds.qf!.forEach((p, i) => pushMatch("qf", i, p.home, p.away));
+        // Semis stay empty until QF winners are known (advanceBracketPure fills them).
+        pushMatch("sf", 0, null, null);
+        pushMatch("sf", 1, null, null);
+        pushMatch("f", 0, null, null);
       } else if (groupCount === 2) {
-        seeds.sf!.forEach((p,i) => pushMatch("sf", i, p.home, p.away));
-        pushMatch("f",  0, seeds.fin!.home, seeds.fin!.away);
+        seeds.sf!.forEach((p, i) => pushMatch("sf", i, p.home, p.away));
+        pushMatch("f", 0, null, null);
       } else if (groupCount === 1) {
-        pushMatch("f",  0, seeds.fin!.home, seeds.fin!.away);
+        pushMatch("f", 0, seeds.fin!.home, seeds.fin!.away);
       }
 
-      const keptBracket = keep.filter((m) => m.stage !== "group");
-      const keptById = new Map(keptBracket.map((m) => [m.id, m]));
+      const freshIds = new Set(freshBracket.map((m) => m.id));
+      // Drop obsolete bracket rows (e.g. a division that shrank from 4 to 2 groups
+      // left stale QF slots) so the tree never shows phantom rounds.
+      existing.filter((m) => !freshIds.has(m.id)).forEach((m) => deleteMatch(m.id));
+
       const merged = [
         ...s.matches.filter((m) => m.stage === "group"),
-        ...keptBracket,
-        ...freshBracket.filter((m) => !keptById.has(m.id) && !keptBracket.some((k) => k.id === m.id)),
+        ...freshBracket,
       ];
-      freshBracket.forEach((m) => { if (!keptById.has(m.id)) upsertMatch(m); });
-      return { ...s, matches: advanceBracketPure(division, merged) };
+      freshBracket.forEach(upsertMatch);
+      // Re-derive SF/final slots from the current standings + winners, then persist
+      // any slot that actually changed so every device converges on the same tree.
+      const advanced = advanceBracketPure(division, merged);
+      advanced.forEach((m) => {
+        const prev = existingById.get(m.id);
+        if (!prev || prev.homeTeamId !== m.homeTeamId || prev.awayTeamId !== m.awayTeamId) {
+          if (m.stage !== "group") upsertMatch(m);
+        }
+      });
+      return { ...s, matches: advanced };
     });
   };
 
 
 
+
+  // Marks any still-pending report for a match as declined (superseded), so a
+  // corrected re-report or a direct admin edit can't leave two live reports.
+  const supersedePending = (matchId: string, keepId?: string) => {
+    const superseded = state.submissions.filter(
+      (x) => x.matchId === matchId && x.status === "pending" && x.id !== keepId
+    );
+    if (superseded.length === 0) return;
+    superseded.forEach((x) => upsertSub({ ...x, status: "declined", note: "reemplazado" }));
+    setState((s) => ({
+      ...s,
+      submissions: s.submissions.map((x) =>
+        x.matchId === matchId && x.status === "pending" && x.id !== keepId
+          ? { ...x, status: "declined" as const, note: "reemplazado" }
+          : x
+      ),
+    }));
+  };
 
   const submitResult: Store["submitResult"] = (matchId, submittedBy, homeScore, awayScore, stats?, photo?, replay?) => {
     const sub: Submission = {
@@ -497,28 +568,39 @@ const bracketWinner = (m: Match): string | null => {
       replay,
       createdAt: Date.now(),
     };
+    // A captain can re-report a declined match, and a re-submit replaces the
+    // previous pending one instead of stacking a second report on the match.
+    supersedePending(matchId, sub.id);
     setState((s) => ({
       ...s,
       submissions: [...s.submissions, sub],
-      matches: s.matches.map((m) => (m.id === matchId ? { ...m, status: "pending_review" } : m)),
+      matches: s.matches.map((m) =>
+        m.id === matchId && m.status !== "approved" && m.status !== "ff"
+          ? { ...m, status: "pending_review" }
+          : m
+      ),
     }));
     upsertSub(sub);
     const m = state.matches.find((x) => x.id === matchId);
-    if (m) upsertMatch({ ...m, status: "pending_review" });
+    if (m && m.status !== "approved" && m.status !== "ff") upsertMatch({ ...m, status: "pending_review" });
   };
 
-  const approve: Store["approve"] = (submissionId, stats) => {
+  const approve: Store["approve"] = (submissionId, stats, homeScore, awayScore) => {
     const sub = state.submissions.find((x) => x.id === submissionId);
     if (!sub) return;
     const finalStats = stats ?? sub.stats ?? [];
-    const approvedSub = { ...sub, status: "approved" as const, stats: finalStats };
+    // The admin may have corrected the score in the report card; fall back to the
+    // captain's submitted values.
+    const finalHome = typeof homeScore === "number" ? homeScore : sub.homeScore;
+    const finalAway = typeof awayScore === "number" ? awayScore : sub.awayScore;
+    const approvedSub = { ...sub, status: "approved" as const, stats: finalStats, homeScore: finalHome, awayScore: finalAway };
     const match = state.matches.find((m) => m.id === sub.matchId);
 
     // Mark the match approved, then recompute the SF/final pairings for
     // knockout matches so the bracket auto-advances after each approval.
     let nextMatches = state.matches.map((m) =>
       m.id === sub.matchId
-        ? { ...m, homeScore: sub.homeScore, awayScore: sub.awayScore, stats: finalStats, status: "approved" as const }
+        ? { ...m, homeScore: finalHome, awayScore: finalAway, stats: finalStats, status: "approved" as const }
         : m
     );
     if (match?.stage !== "group" && match?.groupId) {
@@ -555,14 +637,97 @@ const bracketWinner = (m: Match): string | null => {
     if (match) upsertMatch({ ...match, status: "declined" });
   };
 
+  // Admin fixes a wrong score on a still-pending report before approving it.
+  const updateSubmissionScore: Store["updateSubmissionScore"] = (submissionId, homeScore, awayScore) => {
+    const sub = state.submissions.find((x) => x.id === submissionId);
+    if (!sub) return;
+    const next = { ...sub, homeScore, awayScore };
+    setState((s) => ({ ...s, submissions: s.submissions.map((x) => (x.id === submissionId ? next : x)) }));
+    upsertSub(next);
+  };
+
+  // Undo an approval: the match goes back to "declined" so the captain can send a
+  // corrected result, and any downstream bracket slot seeded from it is cleared.
+  const reopenMatch: Store["reopenMatch"] = (matchId) => {
+    const match = state.matches.find((m) => m.id === matchId);
+    if (!match) return;
+    const approvedSub = [...state.submissions].reverse().find((x) => x.matchId === matchId && x.status === "approved");
+    const reopenedSub = approvedSub ? { ...approvedSub, status: "declined" as const, note: "reabierto" } : null;
+    let nextMatches = state.matches.map((m) => (m.id === matchId ? { ...m, status: "declined" as const } : m));
+    if (match.stage !== "group" && match.groupId) nextMatches = advanceBracketPure(match.groupId as Division, nextMatches);
+    setState((s) => ({
+      ...s,
+      submissions: reopenedSub
+        ? s.submissions.map((x) => (x.id === reopenedSub.id ? reopenedSub : x))
+        : s.submissions,
+      matches: nextMatches,
+    }));
+    if (reopenedSub) upsertSub(reopenedSub);
+    upsertMatch(nextMatches.find((m) => m.id === matchId) ?? match);
+    nextMatches.forEach((m) => {
+      const prev = state.matches.find((old) => old.id === m.id);
+      if (prev && (prev.homeTeamId !== m.homeTeamId || prev.awayTeamId !== m.awayTeamId)) upsertMatch(m);
+    });
+  };
+
+  // Admin overwrites an already-approved score directly (typo correction).
+  const editApprovedResult: Store["editApprovedResult"] = (matchId, homeScore, awayScore) => {
+    const match = state.matches.find((m) => m.id === matchId);
+    if (!match) return;
+    supersedePending(matchId);
+    // Keep the approved report's stored score in sync so the processed list matches.
+    const approved = [...state.submissions].reverse().find((x) => x.matchId === matchId && x.status === "approved");
+    const syncedSub = approved ? { ...approved, homeScore, awayScore } : null;
+    let nextMatches = state.matches.map((m) =>
+      m.id === matchId ? { ...m, homeScore, awayScore, status: "approved" as const, ffWinner: null } : m
+    );
+    if (match.stage !== "group" && match.groupId) nextMatches = advanceBracketPure(match.groupId as Division, nextMatches);
+    setState((s) => ({
+      ...s,
+      submissions: syncedSub ? s.submissions.map((x) => (x.id === syncedSub.id ? syncedSub : x)) : s.submissions,
+      matches: nextMatches,
+    }));
+    if (syncedSub) upsertSub(syncedSub);
+    upsertMatch(nextMatches.find((m) => m.id === matchId) ?? match);
+    nextMatches.forEach((m) => {
+      const prev = state.matches.find((old) => old.id === m.id);
+      if (prev && (prev.homeTeamId !== m.homeTeamId || prev.awayTeamId !== m.awayTeamId)) upsertMatch(m);
+    });
+  };
+
+  // Wipe the season: cloud tables first (so every device clears), then local.
+  const archiveSeason: Store["archiveSeason"] = async () => {
+    if (sb) {
+      const results = await Promise.all([
+        sb.from("submissions").delete().neq("id", ""),
+        sb.from("matches").delete().neq("id", ""),
+        sb.from("registrations").delete().neq("id", ""),
+        sb.from("bracket_state").delete().neq("key", ""),
+      ]);
+      const failed = results.find((r) => r.error);
+      if (failed?.error) {
+        setSyncError(`archiveSeason: ${failed.error.message}`);
+        return false;
+      }
+    }
+    localStorage.removeItem(LS_KEY);
+    setState({ matches: initialMatches, submissions: [], registrations: [], bracketRegen: [] });
+    return true;
+  };
+
   // Photo/replay are multi-MB base64 data URLs, so they're excluded from the
   // global hydration fetch to keep it fast. The admin pulls them on demand only
   // when a report needs verification.
   const fetchSubmissionEvidence: Store["fetchSubmissionEvidence"] = async (submissionId) => {
-    if (!sb) return null;
-    const { data } = await sb.from("submissions").select("id, photo, replay").eq("id", submissionId).single();
-    if (!data) return null;
-    return { photo: data.photo ?? undefined, replay: data.replay ?? undefined };
+    if (sb) {
+      const { data } = await sb.from("submissions").select("id, photo, replay").eq("id", submissionId).single();
+      if (data?.photo || data?.replay) return { photo: data.photo ?? undefined, replay: data.replay ?? undefined };
+    }
+    // Local-only mode (or a row without cloud evidence): the report just
+    // submitted this session is still in memory with its photo/replay.
+    const local = state.submissions.find((s) => s.id === submissionId);
+    if (local?.photo || local?.replay) return { photo: local.photo, replay: local.replay };
+    return null;
   };
 
   const teamById: Store["teamById"] = (id) => {
@@ -614,9 +779,13 @@ const bracketWinner = (m: Match): string | null => {
         generateBracket,
         submitResult,
         approve,
+        decline,
+        updateSubmissionScore,
+        reopenMatch,
+        editApprovedResult,
+        archiveSeason,
         reviewRegistration,
         deleteRegistration,
-        decline,
         fetchSubmissionEvidence,
         teamById,
         playerById,

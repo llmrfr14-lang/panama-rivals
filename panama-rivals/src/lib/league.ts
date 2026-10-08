@@ -72,6 +72,44 @@ export function standingsFor(groupId: string, division: Division, matches: Match
   return Object.values(table).sort((a, b) => b.pts - a.pts || b.w - a.w || h2h(a.teamId, b.teamId)); 
 }
 
+/**
+ * Round-robin schedule via the circle method. Each returned match carries a
+ * 1-based `round` (jornada) so no team plays twice in the same round — this is
+ * the play order that keeps a team from being booked against two opponents at
+ * once. Odd team counts get a bye (the bye pairing is dropped).
+ */
+export function roundRobinRounds(teamIds: string[]): { round: number; home: string; away: string }[] {
+  const BYE = "__bye__";
+  const ids = [...teamIds];
+  if (ids.length % 2 === 1) ids.push(BYE);
+  const n = ids.length;
+  if (n < 2) return [];
+  const out: { round: number; home: string; away: string }[] = [];
+  const arr = [...ids];
+  for (let r = 0; r < n - 1; r++) {
+    for (let i = 0; i < n / 2; i++) {
+      const a = arr[i];
+      const b = arr[n - 1 - i];
+      if (a === BYE || b === BYE) continue;
+      // Alternate home/away each jornada so no team always hosts.
+      out.push({ round: r + 1, home: r % 2 === 0 ? a : b, away: r % 2 === 0 ? b : a });
+    }
+    // Rotate every slot except the first (fixed pivot).
+    const last = arr.pop()!;
+    arr.splice(1, 0, last);
+  }
+  return out;
+}
+
+/** Winner of a knockout match, or null when unresolved (scheduled, pending or a draw). */
+export function bracketWinner(m: Match): string | null {
+  if (m.ffWinner) return m.ffWinner;
+  if (m.status !== "approved") return null;
+  if (m.homeScore > m.awayScore) return m.homeTeamId;
+  if (m.awayScore > m.homeScore) return m.awayTeamId;
+  return null;
+}
+
 export type BracketPairing = { home: string; away: string };
 
 export type BracketSeeds = {
@@ -80,46 +118,60 @@ export type BracketSeeds = {
   fin?: BracketPairing;
 };
 
-/** Group seeds per division. 2 groups (8-10 teams) -> semis + final; 4 groups (11-23) -> QF. */
+/** Group seeds per division. 1 group -> straight final; 2 groups -> semis + final; 4 groups -> QF. */
 export function bracketSeeds(division: Division, matches: Match[], registrations: { id: string; division?: Division }[]): BracketSeeds | null {
-  const s = ["A", "B", "C", "D"].map((g) => standingsFor(g, division, matches, registrations));
-  const has = s.filter((t) => t.length >= 1);
-  if (has.length === 0) return null;
-  // 8-10 teams per division -> 2 groups. Challenger pairs same ranks (SF1: B2 vs A2,
-  // SF2: B1 vs A1) per the organizer's request; Elite keeps the standard cross-seed
-  // (A1 vs B2, B1 vs A2) so group winners don't meet until the final.
-  if (has.length === 2) {
+  // Only groups that actually have teams (a draw can use any subset of A–D, so
+  // never assume A/B are the active ones).
+  const active = ["A", "B", "C", "D"]
+    .map((g) => ({ g, rows: standingsFor(g, division, matches, registrations) }))
+    .filter((x) => x.rows.length >= 1);
+  if (active.length === 0) return null;
+
+  if (active.length === 1) {
+    const rows = active[0].rows;
+    if (rows.length < 2) return null;
+    return { fin: { home: rows[0].teamId, away: rows[1].teamId } };
+  }
+
+  if (active.length === 2) {
+    const [g0, g1] = active;
+    if (g0.rows.length < 2 || g1.rows.length < 2) return null;
+    // Challenger pairs same ranks (SF1: 2º vs 2º, SF2: 1º vs 1º) per the
+    // organizer's request; Elite keeps the standard cross-seed (1º vs 2º) so
+    // group winners don't meet until the final.
     if (division === "challenger") {
       return {
         sf: [
-          { home: s[1][1].teamId, away: s[0][1].teamId }, // B2 vs A2
-          { home: s[1][0].teamId, away: s[0][0].teamId }, // B1 vs A1
+          { home: g1.rows[1].teamId, away: g0.rows[1].teamId },
+          { home: g1.rows[0].teamId, away: g0.rows[0].teamId },
         ],
-        fin: { home: s[0][0].teamId, away: s[1][0].teamId }, // A1 vs B1 placeholder; filled by SF winners
+        fin: { home: g0.rows[0].teamId, away: g1.rows[0].teamId },
       };
     }
     return {
       sf: [
-        { home: s[0][0].teamId, away: s[1][1].teamId }, // A1 vs B2
-        { home: s[1][0].teamId, away: s[0][1].teamId }, // B1 vs A2
+        { home: g0.rows[0].teamId, away: g1.rows[1].teamId },
+        { home: g1.rows[0].teamId, away: g0.rows[1].teamId },
       ],
-      fin: { home: s[0][0].teamId, away: s[1][0].teamId }, // placeholder; filled by SF winners
+      fin: { home: g0.rows[0].teamId, away: g1.rows[0].teamId },
     };
   }
-  // 11-23 teams -> 4 groups -> quarterfinals.
-  if (has.length === 4 && has.every((t) => t.length >= 2)) {
+
+  // 4 groups -> quarterfinals.
+  if (active.length === 4 && active.every((x) => x.rows.length >= 2)) {
+    const [g0, g1, g2, g3] = active;
     return {
       qf: [
-        { home: s[0][0].teamId, away: s[1][1].teamId }, // A1 vs B2
-        { home: s[1][0].teamId, away: s[0][1].teamId }, // B1 vs A2
-        { home: s[2][0].teamId, away: s[3][1].teamId }, // C1 vs D2
-        { home: s[3][0].teamId, away: s[2][1].teamId }, // D1 vs C2
+        { home: g0.rows[0].teamId, away: g1.rows[1].teamId }, // A1 vs B2
+        { home: g1.rows[0].teamId, away: g0.rows[1].teamId }, // B1 vs A2
+        { home: g2.rows[0].teamId, away: g3.rows[1].teamId }, // C1 vs D2
+        { home: g3.rows[0].teamId, away: g2.rows[1].teamId }, // D1 vs C2
       ],
-      fin: { home: s[0][0].teamId, away: s[1][0].teamId }, // placeholder; filled by SF winners
+      fin: { home: g0.rows[0].teamId, away: g1.rows[0].teamId },
     };
   }
-  // Unsupported shape (1 group, 3 groups, or a 4-group where standings are
-  // incomplete) — signal "not ready" so callers bail instead of looping.
+  // Unsupported shape (3 groups, or a 4-group where standings are incomplete) —
+  // signal "not ready" so callers bail instead of looping.
   return null;
 }
 
@@ -145,7 +197,8 @@ export function placementPoints(participants: number, place: number, bracketTeam
 export function placementFor(division: Division, matches: Match[], registrations: { id: string; division?: Division; groupId?: string | null; players: any[] }[]): PlacementRow[] {
   const bracket = matches.filter((m) => m.stage !== "group" && m.groupId === division);
   const fin = bracket.find((m) => m.stage ==="f");
-  const champion = fin ? (fin.ffWinner ?? (fin.homeScore > fin.awayScore ? fin.homeTeamId : fin.awayTeamId)) : null;
+  // Only a settled final crowns a champion — an unplayed 0–0 must not rank anyone.
+  const champion = fin && (fin.status === "approved" || fin.status === "ff") ? bracketWinner(fin) : null;
   const groups = [...new Set(matches.filter((m) => m.stage ==="group" && m.groupId?.startsWith(`${division}-`)).map((m) => m.groupId!))];
   const participants = registrations.filter((r) => r.division === division && r.groupId).length;
   const bracketTeams = Math.min(participants, groups.length * 2);
@@ -155,15 +208,20 @@ export function placementFor(division: Division, matches: Match[], registrations
     if (!teamId) return;
     rows.push({ teamId, place, label, points: placementPoints(participants, place, bracketTeams) });
   };
+  // Loser of a settled knockout match, or null if it isn't decided yet.
+  const loserOf = (m: Match): string | null => {
+    const winner = bracketWinner(m);
+    if (!winner) return null;
+    return winner === m.homeTeamId ? m.awayTeamId : m.homeTeamId;
+  };
   if (champion) {
     add(champion, 1, "1º");
-    const runner = fin ? (fin.homeTeamId === champion ? fin.awayTeamId : fin.homeTeamId) : null;
-    add(runner, 2, "2º");
+    add(fin!.homeTeamId === champion ? fin!.awayTeamId : fin!.homeTeamId, 2, "2º");
   }
-  const sf = bracket.filter((m) => m.stage ==="sf" && m.status ==="approved");
-  sf.forEach((m) => { add(m.homeTeamId,  3, "3º–4º"); add(m.awayTeamId,  3, "3º–4º"); });
-  const qf = bracket.filter((m) => m.stage ==="qf" && m.status ==="approved");
-  qf.forEach((m) => { add(m.homeTeamId,  5, "5º–8º"); add(m.awayTeamId,  5, "5º–8º"); });
+  // SF losers take 3º–4º; QF losers take 5º–8º. Winners are placed by the round
+  // they advance to, never as losers of the round they just won.
+  bracket.filter((m) => m.stage ==="sf").forEach((m) => add(loserOf(m), 3, "3º–4º"));
+  bracket.filter((m) => m.stage ==="qf").forEach((m) => add(loserOf(m), 5, "5º–8º"));
   return rows.filter((r) => r.points >  0).sort((a, b) => b.points - a.points);
 }
 

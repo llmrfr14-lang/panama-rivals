@@ -35,12 +35,15 @@ create table if not exists matches (
   status text not null default 'scheduled',
   stats jsonb not null default '[]',
   scheduled_at bigint,
-  ff_winner text
+  ff_winner text,
+  round_number int
 );
 
 -- Idempotent upgrades for the matches table (bracket/FF columns)
 alter table matches add column if not exists scheduled_at bigint;
 alter table matches add column if not exists ff_winner text;
+-- Group-stage matchday (jornada): pairs in the same round never clash for a team.
+alter table matches add column if not exists round_number int;
 
 create table if not exists submissions (
   id text primary key,

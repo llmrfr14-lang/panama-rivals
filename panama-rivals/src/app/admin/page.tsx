@@ -6,6 +6,7 @@ import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import type { Match, StatLine } from "@/lib/types";
 import type { Division } from "@/lib/league";
+import { EvidenceLightbox } from "@/components/EvidenceLightbox";
 
 export default function AdminPage() {
   const { t, lang } = useI18n();
@@ -19,6 +20,10 @@ export default function AdminPage() {
     reviewRegistration,
     deleteRegistration,
     decline,
+    updateSubmissionScore,
+    reopenMatch,
+    editApprovedResult,
+    archiveSeason,
     fetchSubmissionEvidence,
     teamById,
     assignGroup,
@@ -44,13 +49,20 @@ export default function AdminPage() {
   const [drafts, setDrafts] = useState<Record<string, Record<string, StatLine>>>({});
   const [evidence, setEvidence] = useState<Record<string, { photo?: string; replay?: string } | null>>({});
   const [evidenceLoading, setEvidenceLoading] = useState<Record<string, boolean>>({});
+  const [lightbox, setLightbox] = useState<{ photo?: string; replay?: string; replayName?: string } | null>(null);
+  // Admin-editable scores: pending reports (before approving) and approved matches (typo fixes).
+  const [scoreDrafts, setScoreDrafts] = useState<Record<string, { h: string; a: string }>>({});
+  const [editDrafts, setEditDrafts] = useState<Record<string, { h: string; a: string }>>({});
+  const [archiving, setArchiving] = useState(false);
 
   const loadEvidence = async (id: string) => {
-    if (evidence[id] !== undefined || evidenceLoading[id]) return;
+    if (evidence[id] !== undefined) return evidence[id];
+    if (evidenceLoading[id]) return null;
     setEvidenceLoading((e) => ({ ...e, [id]: true }));
     try {
       const ev = await fetchSubmissionEvidence(id);
       setEvidence((e) => ({ ...e, [id]: ev }));
+      return ev;
     } finally {
       setEvidenceLoading((e) => ({ ...e, [id]: false }));
     }
@@ -70,6 +82,18 @@ export default function AdminPage() {
       if (!draft) return { playerId: p.id, teamId, goals:  0, assists:   0, saves:   0, shots:  0 };
       return { playerId: p.id, teamId, goals: draft.goals ??  0, assists: draft.assists ??  0, saves: draft.saves ??  0, shots: draft.shots ??  0 };
     });
+  };
+
+  const openLightbox = async (subId: string, replayName?: string) => {
+    const ev = await loadEvidence(subId);
+    setLightbox(ev ? { photo: ev.photo, replay: ev.replay, replayName } : { replayName });
+  };
+
+  const submitScore = (subId: string, fallbackH: number, fallbackA: number) => {
+    const d = scoreDrafts[subId];
+    const h = d ? Number(d.h) : fallbackH;
+    const a = d ? Number(d.a) : fallbackA;
+    updateSubmissionScore(subId, Number.isFinite(h) ? h : fallbackH, Number.isFinite(a) ? a : fallbackA);
   };
 
   const verifyCode = async (e: React.FormEvent) => {
@@ -124,7 +148,8 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16">
+    <>
+      <div className="mx-auto max-w-3xl px-4 py-16">
       <h1 className="font-display text-4xl font-black">{t("nav.admin")}</h1>
       {!supabaseConfigured && (
         <p className="mt-4 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-300">
@@ -148,7 +173,7 @@ export default function AdminPage() {
 
       </p>
 
-      <h2 className="mt-10 font-display text-2xl font-bold text-rivals-gold">Registros Temporada 2</h2>
+      <h2 className="mt-10 font-display text-2xl font-bold text-rivals-gold">Registros Temporada 3</h2>
       <div className="mt-4 space-y-3">
         {registrations.map((r) => (
           <div key={r.id} className="glass-card rounded-3xl p-4">
@@ -340,10 +365,14 @@ export default function AdminPage() {
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           {(["challenger", "elite"] as const).map((d) => {
             const ko = matches.filter((m) => m.groupId === d && m.stage !== "group").sort((a, b) => (a.scheduledAt ?? 0) - (b.scheduledAt ?? 0));
-            const groupMs = matches.filter((m) => m.groupId === d && m.stage === "group");
+            // Group rows are namespaced per division ("challenger-A"), so match the
+            // prefix — the old `=== d` never matched and the panel always showed 0.
+            const groupMs = matches.filter((m) => m.stage === "group" && m.groupId?.startsWith(`${d}-`));
             const reported = groupMs.filter((m) => m.status === "approved" || m.status === "ff");
-            const missing = groupMs.filter((m) => m.status === "scheduled");
-            const reviewing = groupMs.filter((m) => m.status === "pending_review");
+            // Anything not approved/ff and not already under review still needs a
+            // report — including reopened ("declined") matches.
+            const missing = groupMs.filter((m) => m.status === "scheduled" || m.status === "declined").sort((a, b) => (a.round ?? 0) - (b.round ?? 0) || a.id.localeCompare(b.id));
+            const reviewing = groupMs.filter((m) => m.status === "pending_review").sort((a, b) => (a.round ?? 0) - (b.round ?? 0) || a.id.localeCompare(b.id));
             return (
               <div key={d} className="glass-card rounded-3xl p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -371,17 +400,18 @@ export default function AdminPage() {
                         {[...missing, ...reviewing].map((m) => (
                           <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/5 bg-white/3 px-2.5 py-1.5">
                             <span className="font-medium text-slate-200">
+                              {m.round ? <span className="mr-1.5 font-bold text-rivals-gold">J{m.round}</span> : null}
                               {teamById(m.homeTeamId)?.name ?? "?"} <span className="text-slate-500">vs</span>{" "}
                               {teamById(m.awayTeamId)?.name ?? "?"}
                             </span>
                             <span
                               className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${
-                                m.status === "scheduled"
-                                  ? "bg-amber-500/15 text-amber-300"
-                                  : "bg-rivals-blue/15 text-rivals-blue"
+                                m.status === "pending_review"
+                                  ? "bg-rivals-blue/15 text-rivals-blue"
+                                  : "bg-amber-500/15 text-amber-300"
                               }`}
                             >
-                              {m.status === "scheduled" ? "⚠ falta reportar" : "⏳ en revisión"}
+                              {m.status === "pending_review" ? "⏳ en revisión" : m.status === "declined" ? "↺ reabierto" : "⚠ falta reportar"}
                             </span>
                           </li>
                         ))}
@@ -431,14 +461,37 @@ export default function AdminPage() {
           const away = teamById(m?.awayTeamId ?? null)?.name ?? m?.awayTeamId;
           return (
             <div key={s.id} className="glass-card rounded-3xl p-4">
-              <div className="flex items-center justify-between">
-                <p className="font-semibold">
-                  {home} {s.homeScore} — {away} {s.awayScore}
-                </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2 font-semibold">
+                  <span>{home}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    aria-label="Marcador local"
+                    value={scoreDrafts[s.id]?.h ?? String(s.homeScore)}
+                    onChange={(e) => setScoreDrafts((d) => ({ ...d, [s.id]: { h: e.target.value, a: d[s.id]?.a ?? String(s.awayScore) } }))}
+                    onBlur={() => submitScore(s.id, s.homeScore, s.awayScore)}
+                    className="w-14 soft-ring rounded-lg border border-white/10 bg-white/5 px-1 py-0.5 text-center font-mono backdrop-blur-md transition"
+                  />
+                  <span className="text-slate-500">—</span>
+                  <input
+                    type="number"
+                    min={0}
+                    aria-label="Marcador visitante"
+                    value={scoreDrafts[s.id]?.a ?? String(s.awayScore)}
+                    onChange={(e) => setScoreDrafts((d) => ({ ...d, [s.id]: { h: d[s.id]?.h ?? String(s.homeScore), a: e.target.value } }))}
+                    onBlur={() => submitScore(s.id, s.homeScore, s.awayScore)}
+                    className="w-14 soft-ring rounded-lg border border-white/10 bg-white/5 px-1 py-0.5 text-center font-mono backdrop-blur-md transition"
+                  />
+                  <span>{away}</span>
+                </div>
                 <span className="text-xs uppercase tracking-widest text-slate-500">
                   envió: {s.submittedBy}
                 </span>
               </div>
+              <p className="mt-1 text-[11px] text-slate-500">
+                Si el capitán envió mal el marcador, corrígelo aquí — se guarda al salir del campo.
+              </p>
               <div className="mt-3 space-y-3">
                 <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
                   Stats individuales — las cargan los admins (los capitanes ya no las envían)
@@ -495,13 +548,21 @@ export default function AdminPage() {
                         <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
                           Foto del marcador final — verifica que TODOS los jugadores aparecen
                         </p>
-                        <a href={ev.photo} target="_blank" rel="noreferrer" className="mt-1 inline-block">
+                        <button
+                          type="button"
+                          onClick={() => openLightbox(s.id)}
+                          className="mt-1 block"
+                          aria-label="Ampliar foto del marcador"
+                        >
                           <img
                             src={ev.photo}
                             alt="Marcador final"
-                            className="h-24 w-auto rounded-lg border border-white/10 object-contain hover:brightness-110"
+                            className="h-24 w-auto cursor-zoom-in rounded-lg border border-white/10 object-contain transition hover:brightness-110"
                           />
-                        </a>
+                          <span className="mt-1 block text-[10px] font-semibold text-rivals-blue">
+                            🔍 Toca la foto para ampliarla
+                          </span>
+                        </button>
                       </div>
                     ) : (
                       <p className="mt-3 text-xs text-amber-400">Sin foto del marcador</p>
@@ -509,9 +570,9 @@ export default function AdminPage() {
                     {ev?.replay ? (
                       <p className="mt-1 text-xs text-emerald-300">
                         ✓ Replay adjunto:{" "}
-                        <a href={ev.replay} download className="underline">
-                          descargar .replay
-                        </a>
+                        <button type="button" onClick={() => openLightbox(s.id)} className="underline">
+                          ver / descargar .replay
+                        </button>
                       </p>
                     ) : null}
                   </>
@@ -519,12 +580,20 @@ export default function AdminPage() {
               })()}
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
-                  onClick={() => approve(
-                    s.id,
-                    draftLinesFor(s.id, m?.homeTeamId ?? "", rosterOf(m?.homeTeamId ?? null)).concat(
-                      draftLinesFor(s.id, m?.awayTeamId ?? "", rosterOf(m?.awayTeamId ?? null))
-                    )
-                )}
+                  onClick={() => {
+                    submitScore(s.id, s.homeScore, s.awayScore);
+                    const sd = scoreDrafts[s.id];
+                    const h = sd ? Number(sd.h) : s.homeScore;
+                    const a = sd ? Number(sd.a) : s.awayScore;
+                    approve(
+                      s.id,
+                      draftLinesFor(s.id, m?.homeTeamId ?? "", rosterOf(m?.homeTeamId ?? null)).concat(
+                        draftLinesFor(s.id, m?.awayTeamId ?? "", rosterOf(m?.awayTeamId ?? null))
+                      ),
+                      Number.isFinite(h) ? h : s.homeScore,
+                      Number.isFinite(a) ? a : s.awayScore
+                    );
+                  }}
                   className="soft-ring rounded-full bg-rivals-red px-4 py-2 text-sm font-bold text-white shadow-[0_4px_12px_rgba(230,57,70,0.3)] transition hover:brightness-110"
                 >
                   {t("admin.approve")}
@@ -539,7 +608,7 @@ export default function AdminPage() {
                   {t("admin.decline")}
                 </button>
                 <button
-                  onClick={() => loadEvidence(s.id)}
+                  onClick={() => openLightbox(s.id)}
                   className="rounded border border-rivals-border px-4 py-2 text-sm font-bold text-rivals-blue hover:border-rivals-blue"
                 >
                   {evidenceLoading[s.id] ? "Cargando…" : "Ver foto/replay"}
@@ -552,23 +621,137 @@ export default function AdminPage() {
       </div>
 
       <h2 className="mt-12 font-display text-2xl font-bold text-rivals-gold">Procesados</h2>
+      <p className="mt-1 text-xs text-slate-500">
+        Corrige un marcador aprobado aquí mismo, o reábrelo para que el capitán lo vuelva a enviar.
+      </p>
       <div className="mt-4 space-y-2 text-sm">
         {processed.map((s) => {
           const m = matches.find((x) => x.id === s.matchId);
+          const isApproved = s.status === "approved";
+          const ed = editDrafts[s.id]?.h !== undefined || editDrafts[s.id]?.a !== undefined;
+          const h = ed ? editDrafts[s.id].h : String(s.homeScore);
+          const a = ed ? editDrafts[s.id].a : String(s.awayScore);
           return (
-            <div key={s.id} className="flex items-center justify-between rounded border border-rivals-border px-3 py-2">
-              <span>
-                {teamById(m?.homeTeamId ?? null)?.name} {s.homeScore}-{s.awayScore}{" "}
-                {teamById(m?.awayTeamId ?? null)?.name}
-              </span>
-              <span className={`text-xs font-bold uppercase ${s.status === "approved" ? "text-emerald-400" : "text-rose-400"}`}>
-                {s.status}
-              </span>
+            <div key={s.id} className="rounded border border-rivals-border px-3 py-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="flex flex-wrap items-center gap-1.5">
+                  {teamById(m?.homeTeamId ?? null)?.name}
+                  {isApproved ? (
+                    <>
+                      <input
+                        type="number"
+                        min={0}
+                        aria-label="Marcador local"
+                        value={h}
+                        onChange={(e) => setEditDrafts((d) => ({ ...d, [s.id]: { h: e.target.value, a: d[s.id]?.a ?? String(s.awayScore) } }))}
+                        className="w-12 soft-ring rounded-lg border border-white/10 bg-white/5 px-1 py-0.5 text-center font-mono backdrop-blur-md transition"
+                      />
+                      <span className="text-slate-500">-</span>
+                      <input
+                        type="number"
+                        min={0}
+                        aria-label="Marcador visitante"
+                        value={a}
+                        onChange={(e) => setEditDrafts((d) => ({ ...d, [s.id]: { h: d[s.id]?.h ?? String(s.homeScore), a: e.target.value } }))}
+                        className="w-12 soft-ring rounded-lg border border-white/10 bg-white/5 px-1 py-0.5 text-center font-mono backdrop-blur-md transition"
+                      />
+                    </>
+                  ) : (
+                    <span className="font-mono">{s.homeScore}-{s.awayScore}</span>
+                  )}
+                  {teamById(m?.awayTeamId ?? null)?.name}
+                </span>
+                <span className={`text-xs font-bold uppercase ${isApproved ? "text-emerald-400" : "text-rose-400"}`}>
+                  {s.status}
+                </span>
+              </div>
+              {isApproved && m && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      const nh = Number(h);
+                      const na = Number(a);
+                      editApprovedResult(m.id, Number.isFinite(nh) ? nh : s.homeScore, Number.isFinite(na) ? na : s.awayScore);
+                      setEditDrafts((d) => { const n = { ...d }; delete n[s.id]; return n; });
+                    }}
+                    className="soft-ring rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white transition hover:brightness-110"
+                  >
+                    💾 Guardar marcador
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm("¿Reabrir este resultado? El partido vuelve a estar pendiente y el capitán puede enviar una corrección.")) {
+                        reopenMatch(m.id);
+                      }
+                    }}
+                    className="soft-ring rounded-full bg-amber-500/20 px-3 py-1 text-xs font-bold text-amber-300 transition hover:bg-amber-500/40"
+                  >
+                    ↺ Reabrir
+                  </button>
+                  {s.submittedBy !== "admin" && (
+                    <button
+                      onClick={() => openLightbox(s.id)}
+                      className="soft-ring rounded-full bg-white/5 px-3 py-1 text-xs font-bold text-rivals-blue transition hover:bg-white/10"
+                    >
+                      🖼️ Ver evidencia
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
         {processed.length === 0 && <p className="text-slate-500">Aún no hay resultados procesados.</p>}
       </div>
-    </div>
+
+      <h2 className="mt-12 font-display text-2xl font-bold text-rivals-gold">Temporada 3 — Reinicio</h2>
+      <div className="mt-4 rounded-2xl border border-rose-400/30 bg-rose-500/5 p-4">
+        <p className="text-sm text-slate-300">
+          Cierra la Temporada 2 y deja la web lista para la Temporada 3: borra equipos, grupos,
+          calendario, resultados y estadísticas (en la nube y en este navegador). Es irreversible —
+          descarga lo que necesites antes de continuar.
+        </p>
+        <button
+          disabled={archiving}
+          onClick={async () => {
+            if (!confirm("¿Borrar TODOS los datos de la Temporada 2 y empezar la Temporada 3 en limpio?")) return;
+            if (!confirm("Última confirmación: esto no se puede deshacer. ¿Continuar?")) return;
+            setArchiving(true);
+            try {
+              const ok = await archiveSeason();
+              alert(ok ? "✓ Listo. Temporada 3 en limpio." : "⚠️ No se pudo borrar en la nube. Revisa el error arriba.");
+            } finally {
+              setArchiving(false);
+            }
+          }}
+          className="soft-ring mt-3 rounded-full bg-rose-500/90 px-4 py-2 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-50"
+        >
+          {archiving ? "Borrando…" : "🗑️ Cerrar Temporada 2 y abrir Temporada 3"}
+        </button>
+        <button
+          onClick={() => {
+            const blob = new Blob([JSON.stringify({ registrations, matches, submissions }, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "panama-rivals-temporada-2.json";
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+          className="soft-ring mt-3 ml-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-bold text-slate-200 transition hover:bg-white/10"
+        >
+          ⬇️ Descargar respaldo (JSON)
+        </button>
+      </div>
+      </div>
+      {lightbox && (
+        <EvidenceLightbox
+          photo={lightbox.photo}
+          replay={lightbox.replay}
+          replayName={lightbox.replayName}
+          onClose={() => setLightbox(null)}
+        />
+      )}
+    </>
   );
 }

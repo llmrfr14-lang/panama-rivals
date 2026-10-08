@@ -60,7 +60,7 @@ export default function TeamsPage() {
         <div className="mt-16 mx-auto max-w-md glass-card glass-dashed rounded-3xl p-10 text-center">
           <span className="emoji text-4xl">🛡️</span>
           <p className="mt-4 font-display text-xl font-bold text-rivals-gold">
-            {lang === "en" ? "Season 2" : "Temporada 2"}
+            {lang === "en" ? "Season 3" : "Temporada 3"}
           </p>
           <p className="mt-2 text-sm text-slate-400">
             {lang === "en"

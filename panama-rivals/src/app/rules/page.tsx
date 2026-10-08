@@ -10,8 +10,8 @@ const rules: Rule[] = [
     title: { es: "Divisiones", en: "Divisions" },
     body: [
       {
-        es: "La Temporada 2 tiene dos divisiones separadas: Challenger (pico máximo Champion 2 y debajo) y Elite (Champion 3 y arriba. Cada división tiene sus propios grupos, bracket, stats y campeón.",
-        en: "Season 2 has two separate divisions: Challenger (peak rank Champion 2 and below) and Elite (Champion 3 and above. Each division has its own groups, bracket, stats and champion.",
+        es: "La Temporada 3 tiene dos divisiones separadas: Challenger (pico máximo Champion 2 y debajo) y Elite (Champion 3 y arriba. Cada división tiene sus propios grupos, bracket, stats y campeón.",
+        en: "Season 3 has two separate divisions: Challenger (peak rank Champion 2 and below) and Elite (Champion 3 and above. Each division has its own groups, bracket, stats and champion.",
       },
       {
         es: "El equipo entra en Elite si alguno de sus jugadores tiene rank máximo Champion 3 o superior; de lo contrario, en Challenger.",
