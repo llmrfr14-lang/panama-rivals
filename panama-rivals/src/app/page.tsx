@@ -152,6 +152,10 @@ export default function Home() {
           {t("hero.champ")} →
         </Link>
 
+        <Link href="/season2" className="soft-ring ml-3 mt-10 inline-flex items-center gap-2 rounded-full border border-rivals-red/30 bg-rivals-red/10 px-5 py-2 text-sm font-bold text-rivals-red backdrop-blur transition hover:border-rivals-red/60 hover:bg-rivals-red/15">
+          {t("hero.s2")} →
+        </Link>
+
         <Link
           href="/teams"
           className="soft-ring mt-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2 text-sm font-bold text-slate-200 backdrop-blur-md transition hover:border-rivals-blue/50 hover:text-white"

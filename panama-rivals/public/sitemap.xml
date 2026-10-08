@@ -6,5 +6,7 @@
   <url><loc>https://panamarivals.com/bracket</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://panamarivals.com/stats</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://panamarivals.com/rules</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://panamarivals.com/season1</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://panamarivals.com/season2</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://panamarivals.com/register</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
 </urlset>
