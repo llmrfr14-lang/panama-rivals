@@ -93,6 +93,20 @@ type Persisted = {
   bracketRegen: string[];
 };
 
+/** Decode the base64url preview seed (UTF-8 safe). */
+function decodeB64Url(s: string): string {
+  const b64 = s.replace(/-/g, "+").replace(/_/g, "/");
+  const bin = atob(b64 + "===".slice((b64.length + 3) % 4));
+  const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+/** Preview seed present and we're in local (no-Supabase) mode → keep state read-only. */
+function isPreviewSeed(): boolean {
+  if (typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).has("s3demo");
+}
+
 
 function groupMatchesFor(registrations: Registration[], groupId: string): Match[] {
   const ids = registrations
@@ -204,6 +218,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           }
         } catch { /* fall through to localStorage */ }
       }
+      // Local-only preview seed (?s3demo=<base64url|/path.json>) loads a shared,
+      // read-only snapshot without touching Supabase. Ignored in cloud mode.
+      try {
+        const seed = !sb ? new URLSearchParams(window.location.search).get("s3demo") : null;
+        if (seed && !cancelled) {
+          const text = seed.startsWith("/") || seed.startsWith("http")
+            ? await fetch(seed).then((r) => r.text())
+            : decodeB64Url(seed);
+          const parsed = JSON.parse(text) as Persisted;
+          if (Array.isArray(parsed?.registrations) && !cancelled) {
+            setState({ ...parsed, bracketRegen: parsed.bracketRegen ?? [] });
+            setHydrated(true);
+            return;
+          }
+        }
+      } catch { /* bad seed → fall through to local state */ }
       try {
         const raw = localStorage.getItem(LS_KEY);
         if (raw && !cancelled) {
@@ -222,6 +252,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   // captures) and fall back to stripping it if the storage quota is exceeded.
   useEffect(() => {
     if (!hydrated) return;
+    if (isPreviewSeed()) return; // shared snapshot stays read-only
     const base: Persisted = { ...state, bracketRegen: [] };
     const stripEvidence = (): Persisted => ({
       ...base,
@@ -525,7 +556,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       existing.filter((m) => !freshIds.has(m.id)).forEach((m) => deleteMatch(m.id));
 
       const merged = [
-        ...s.matches.filter((m) => m.stage === "group"),
+        // Keep group matches plus every knockout row from the OTHER division, so
+        // generating one division never wipes the other's bracket (both qualify
+        // in the same pass → each regeneration used to drop the other division's
+        // tree, flipping forever — the "page freezes" loop).
+        ...s.matches.filter((m) => m.stage === "group" || m.groupId !== division),
         ...freshBracket,
       ];
       freshBracket.forEach(upsertMatch);
