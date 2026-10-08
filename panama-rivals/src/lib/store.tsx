@@ -696,18 +696,24 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Wipe the season: cloud tables first (so every device clears), then local.
+  // Delete order matters — submissions reference matches, so deleting matches
+  // first would fail the FK and abort the whole reset. Each step is checked so
+  // a partial failure reports the real cause instead of a generic error.
   const archiveSeason: Store["archiveSeason"] = async () => {
     if (sb) {
-      const results = await Promise.all([
-        sb.from("submissions").delete().neq("id", ""),
-        sb.from("matches").delete().neq("id", ""),
-        sb.from("registrations").delete().neq("id", ""),
-        sb.from("bracket_state").delete().neq("key", ""),
-      ]);
-      const failed = results.find((r) => r.error);
-      if (failed?.error) {
-        setSyncError(`archiveSeason: ${failed.error.message}`);
-        return false;
+      const steps: [string, () => PromiseLike<{ error: { message: string } | null }>][] = [
+        ["submissions", () => sb.from("submissions").delete().neq("id", "")],
+        ["matches", () => sb.from("matches").delete().neq("id", "")],
+        ["registrations", () => sb.from("registrations").delete().neq("id", "")],
+        ["bracket_state", () => sb.from("bracket_state").delete().neq("key", "")],
+      ];
+      for (const [table, del] of steps) {
+        const { error } = await del();
+        // bracket_state is only a regen watchdog — never block a season reset on it.
+        if (error && table !== "bracket_state") {
+          setSyncError(`archiveSeason (${table}): ${error.message}`);
+          return false;
+        }
       }
     }
     localStorage.removeItem(LS_KEY);
