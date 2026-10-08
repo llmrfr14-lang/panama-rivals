@@ -27,7 +27,7 @@ const inputCls =
 
 export default function RegisterPage() {
   const { lang } = useI18n();
-  const { registerTeam, registrations, supabaseConfigured, resetMyRegistration } = useStore();
+  const { registerTeam, registrations, supabaseConfigured, resetMyRegistration, registrationOpen } = useStore();
   const [step, setStep] = useState<number>(0);
   const [form, setForm] = useState({
     team: "",
@@ -213,7 +213,18 @@ export default function RegisterPage() {
         </div>
       )}
 
-      <form onSubmit={(e) => { e.preventDefault(); next(); }} className="mt-6 space-y-5 glass-card rounded-3xl p-6">
+      <form onSubmit={(e) => { e.preventDefault(); if (!registrationOpen) return; next(); }} className="mt-6 space-y-5 glass-card rounded-3xl p-6">
+        {!registrationOpen && !done && (
+          <div className="rounded-2xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+            <p className="font-bold">🔒 {en ? "Registration is closed" : "Las inscripciones están cerradas"}</p>
+            <p className="mt-1 text-xs text-amber-200/80">
+              {en
+                ? "Team registration for the next season isn't open yet. Check back soon or ask in Discord."
+                : "El registro para la próxima temporada aún no está abierto. Vuelve pronto o pregunta en Discord."}
+            </p>
+          </div>
+        )}
+        <fieldset disabled={!registrationOpen && !done} className={`min-w-0 space-y-5 ${!registrationOpen && !done ? "pointer-events-none opacity-50" : ""}`}>
         {/* ── STEP 1: Equipo ── */}
         {step === 0 && (
           <div className="fade-slide space-y-4">
@@ -494,6 +505,7 @@ export default function RegisterPage() {
             </Link>
           </div>
         )}
+        </fieldset>
       </form>
 
       {myReg && myReg.status === "approved" && (

@@ -48,6 +48,9 @@ type Store = {
   supabaseConfigured: boolean;
   hydrated: boolean;
   lastSyncError: string | null;
+  /** Whether new team registrations are accepted right now (admin toggle). */
+  registrationOpen: boolean;
+  setRegistrationOpen: (open: boolean) => void;
   registerTeam: (teamName: string, captain: RivalContact, players: PlayerInfo[]) => Registration;
   /** Clear this browser's "my team" marker so the captain can register a fresh team. */
   resetMyRegistration: () => void;
@@ -109,6 +112,14 @@ function decodeB64Url(s: string): string {
 function isPreviewSeed(): boolean {
   if (typeof window === "undefined") return false;
   return new URLSearchParams(window.location.search).has("s3demo");
+}
+
+/** Whether team registration is open. Synced via the `settings` table in cloud
+ *  mode (key `registration-open`), or localStorage in local-only mode. */
+const REG_OPEN_KEY = "rivals_registration_open";
+function readRegOpenLocal(): boolean {
+  if (typeof window === "undefined") return true;
+  return localStorage.getItem(REG_OPEN_KEY) !== "false";
 }
 
 
@@ -189,6 +200,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     bracketRegen: [],
   });
   const [lastSyncError, setLastSyncError] = useState<string | null>(null);
+  const [registrationOpen, setRegistrationOpenState] = useState<boolean>(() => readRegOpenLocal());
   const setSyncError = (msg: string) => {
     console.error("supabase write failed:", msg);
     setLastSyncError(msg);
@@ -204,11 +216,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       if (sb) {
         try {
-          const [regs, ms, subs, flags] = await Promise.all([
+          const [regs, ms, subs, flags, setting] = await Promise.all([
             sb.from("registrations").select("*").order("created_at"),
             sb.from("matches").select("*"),
             sb.from("submissions").select("id, match_id, submitted_by, home_score, away_score, stats, status, note, created_at").order("created_at"),
             sb.from("bracket_state").select("key").ilike("key", "bracket-regen-%"),
+            sb.from("settings").select("value").eq("key", "registration-open").maybeSingle(),
           ]);
           if (!cancelled && regs.data && ms.data && subs.data) {
             setState({
@@ -217,6 +230,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
               submissions: subs.data.map(subFromRow),
               bracketRegen: (flags.data ?? []).map((f: { key: string }) => f.key),
             });
+            const open = (setting.data?.value as { open?: boolean } | undefined)?.open;
+            if (typeof open === "boolean") setRegistrationOpenState(open);
             setHydrated(true);
             return;
           }
@@ -314,6 +329,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const key = (payload.old as { key?: string })?.key;
         if (key) setState((s) => ({ ...s, bracketRegen: s.bracketRegen.filter((k) => k !== key) }));
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, (payload) => {
+        const row = (payload.new ?? payload.old) as { key?: string; value?: { open?: boolean } };
+        if (row?.key === "registration-open" && typeof row.value?.open === "boolean") {
+          setRegistrationOpenState(row.value.open);
+        }
+      })
       .subscribe();
     return () => { sb.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -390,6 +411,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const upsertSub = (s: Submission) => {
     if (!sb) return;
     sb.from("submissions").upsert({ id: s.id, match_id: s.matchId, submitted_by: s.submittedBy, home_score: s.homeScore, away_score: s.awayScore, stats: s.stats, status: s.status, note: s.note ?? null, photo: s.photo ?? null, replay: s.replay ?? null, created_at: s.createdAt }).then(() => {}, (e) => setSyncError(`submissions.upsert ${s.id}: ${e?.message ?? e}`));
+  };
+
+  const setRegistrationOpen: Store["setRegistrationOpen"] = (open) => {
+    setRegistrationOpenState(open);
+    localStorage.setItem(REG_OPEN_KEY, String(open));
+    if (sb) {
+      const updatedAt = Date.now();
+      sb.from("settings")
+        .upsert({ key: "registration-open", value: { open }, updated_at: updatedAt }, { onConflict: "key" })
+        .then(({ error }) => {
+          if (error) setSyncError(`settings.upsert: ${error.message}`);
+        }, (e) => setSyncError(`settings.upsert: ${e?.message ?? e}`));
+    }
   };
 
   const registerTeam: Store["registerTeam"] = (teamName, captain, players) => {
@@ -754,20 +788,37 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   // first would fail the FK and abort the whole reset. Each step is checked so
   // a partial failure reports the real cause instead of a generic error.
   const archiveSeason: Store["archiveSeason"] = async () => {
+    const blockers: string[] = [];
     if (sb) {
-      const steps: [string, () => PromiseLike<{ error: { message: string } | null }>][] = [
-        ["submissions", () => sb.from("submissions").delete().neq("id", "")],
-        ["matches", () => sb.from("matches").delete().neq("id", "")],
-        ["registrations", () => sb.from("registrations").delete().neq("id", "")],
-        ["bracket_state", () => sb.from("bracket_state").delete().neq("key", "")],
+      // `count: "exact"` + return=representation lets us tell a real wipe from a
+      // silent no-op: if RLS lacks a DELETE policy the request returns 200 with
+      // count 0, which used to report success while the cloud kept every row.
+      const steps: [string, () => PromiseLike<{ error: { message: string } | null; count?: number | null }>][] = [
+        ["submissions", () => sb.from("submissions").delete({ count: "exact" }).neq("id", "")],
+        ["matches", () => sb.from("matches").delete({ count: "exact" }).neq("id", "")],
+        ["registrations", () => sb.from("registrations").delete({ count: "exact" }).neq("id", "")],
+        ["bracket_state", () => sb.from("bracket_state").delete({ count: "exact" }).neq("key", "")],
       ];
       for (const [table, del] of steps) {
-        const { error } = await del();
-        // bracket_state is only a regen watchdog — never block a season reset on it.
-        if (error && table !== "bracket_state") {
-          setSyncError(`archiveSeason (${table}): ${error.message}`);
-          return false;
+        const { error, count } = await del();
+        if (error) {
+          // bracket_state is only a regen watchdog — never block a reset on it.
+          if (table !== "bracket_state") {
+            setSyncError(`archiveSeason (${table}): ${error.message}`);
+            return false;
+          }
+          continue;
         }
+        if ((count ?? 0) === 0 && table !== "bracket_state") {
+          blockers.push(table);
+        }
+      }
+      if (blockers.length > 0) {
+        setSyncError(
+          `archiveSeason: no se borró nada en ${blockers.join(", ")} (el DELETE devolvió 0 filas). ` +
+            `Falta la policy/grant de DELETE anon — corré supabase/season3_setup.sql.`,
+        );
+        return false;
       }
     }
     localStorage.removeItem(LS_KEY);
@@ -835,6 +886,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         hydrated,
         supabaseConfigured: Boolean(sb),
         lastSyncError,
+        registrationOpen,
+        setRegistrationOpen,
         registerTeam,
         resetMyRegistration,
         assignGroup,

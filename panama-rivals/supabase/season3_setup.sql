@@ -157,6 +157,30 @@ drop trigger if exists bracket_state_regen on matches;
 create trigger bracket_state_regen after update of status on matches
 for each row execute function bracket_flag_bracket_regen();
 
+-- ── Ajustes de liga (ej. abrir/cerrar inscripciones) ────────────────────────
+create table if not exists settings (
+  key text primary key,
+  value jsonb not null default '{}'::jsonb,
+  updated_at bigint not null default 0
+);
+
+alter table settings enable row level security;
+
+drop policy if exists "public read settings" on settings;
+drop policy if exists "anon insert settings" on settings;
+drop policy if exists "anon update settings" on settings;
+drop policy if exists "anon delete settings" on settings;
+
+grant usage on schema public to anon;
+grant select, insert, update, delete on settings to anon;
+
+create policy "public read settings" on settings for select using (true);
+create policy "anon insert settings" on settings for insert with check (true);
+create policy "anon update settings" on settings for update using (true);
+create policy "anon delete settings" on settings for delete using (true);
+
+do $$ begin alter publication supabase_realtime add table settings; exception when duplicate_object then null; end $$;
+
 -- ── Realtime (ignorá el error de "duplicate_object" si ya estaba) ───────────
 do $$ begin alter publication supabase_realtime add table registrations; exception when duplicate_object then null; end $$;
 do $$ begin alter publication supabase_realtime add table matches; exception when duplicate_object then null; end $$;

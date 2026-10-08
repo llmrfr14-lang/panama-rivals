@@ -26,6 +26,8 @@ export default function AdminPage() {
     editApprovedResult,
     archiveSeason,
     fetchSubmissionEvidence,
+    registrationOpen,
+    setRegistrationOpen,
     teamById,
     assignGroup,
     generateSchedule,
@@ -55,6 +57,13 @@ export default function AdminPage() {
   const [scoreDrafts, setScoreDrafts] = useState<Record<string, { h: string; a: string }>>({});
   const [editDrafts, setEditDrafts] = useState<Record<string, { h: string; a: string }>>({});
   const [archiving, setArchiving] = useState(false);
+  // In-page confirmation (native confirm()/alert() are blocked in embedded
+  // previews and return false silently, which made the button look dead).
+  const [archiveConfirm, setArchiveConfirm] = useState<"idle" | "warn" | "final">("idle");
+  const [archiveMsg, setArchiveMsg] = useState<string | null>(null);
+  // Two-step in-page confirms (native confirm() is unreliable in embedded previews).
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmReopenId, setConfirmReopenId] = useState<string | null>(null);
 
   const loadEvidence = async (id: string) => {
     if (evidence[id] !== undefined) return evidence[id];
@@ -242,14 +251,15 @@ export default function AdminPage() {
                 )}
                 <button
                   onClick={() => {
-                    if (confirm(`Rechazar y eliminar el registro de "${r.teamName}"? Se borrará permanentemente.`)) {
-                      deleteRegistration(r.id);
-                      if (openId === r.id) setOpenId(null);
-                    }
+                    if (confirmDeleteId !== r.id) { setConfirmDeleteId(r.id); return; }
+                    deleteRegistration(r.id);
+                    setConfirmDeleteId(null);
+                    if (openId === r.id) setOpenId(null);
                   }}
-                  className="soft-ring rounded-full bg-rose-500/20 text-rose-400 px-3 py-1 text-xs font-bold transition hover:bg-rose-500/40"
+                  onBlur={() => setConfirmDeleteId((id) => (id === r.id ? null : id))}
+                  className={`soft-ring rounded-full px-3 py-1 text-xs font-bold transition ${confirmDeleteId === r.id ? "bg-rose-500 text-white" : "bg-rose-500/20 text-rose-400 hover:bg-rose-500/40"}`}
                 >
-                  ✕ Rechazar
+                  {confirmDeleteId === r.id ? "⚠️ Confirmar borrado" : "✕ Rechazar"}
                 </button>
               </div>
             </div>
@@ -694,13 +704,14 @@ export default function AdminPage() {
                   </button>
                   <button
                     onClick={() => {
-                      if (confirm("¿Reabrir este resultado? El partido vuelve a estar pendiente y el capitán puede enviar una corrección.")) {
-                        reopenMatch(m.id);
-                      }
+                      if (confirmReopenId !== m.id) { setConfirmReopenId(m.id); return; }
+                      reopenMatch(m.id);
+                      setConfirmReopenId(null);
                     }}
-                    className="soft-ring rounded-full bg-amber-500/20 px-3 py-1 text-xs font-bold text-amber-300 transition hover:bg-amber-500/40"
+                    onBlur={() => setConfirmReopenId((id) => (id === m.id ? null : id))}
+                    className={`soft-ring rounded-full px-3 py-1 text-xs font-bold transition ${confirmReopenId === m.id ? "bg-amber-500 text-white" : "bg-amber-500/20 text-amber-300 hover:bg-amber-500/40"}`}
                   >
-                    ↺ Reabrir
+                    {confirmReopenId === m.id ? "⚠️ Confirmar reapertura" : "↺ Reabrir"}
                   </button>
                   {s.submittedBy !== "admin" && (
                     <button
@@ -718,6 +729,21 @@ export default function AdminPage() {
         {processed.length === 0 && <p className="text-slate-500">Aún no hay resultados procesados.</p>}
       </div>
 
+      <h2 className="mt-12 font-display text-2xl font-bold text-rivals-gold">Inscripciones — Temporada 3</h2>
+      <div className={`mt-4 rounded-2xl border p-4 ${registrationOpen ? "border-emerald-400/30 bg-emerald-500/5" : "border-amber-400/30 bg-amber-500/5"}`}>
+        <p className="text-sm text-slate-300">
+          {registrationOpen
+            ? "Las inscripciones están ABIERTAS: el formulario /register acepta equipos nuevos."
+            : "Las inscripciones están CERRADAS: /register muestra un aviso y no permite enviar equipos."}
+        </p>
+        <button
+          onClick={() => setRegistrationOpen(!registrationOpen)}
+          className={`soft-ring mt-3 rounded-full px-4 py-2 text-sm font-bold text-white transition hover:brightness-110 ${registrationOpen ? "bg-amber-500/90" : "bg-emerald-500/90"}`}
+        >
+          {registrationOpen ? "🔒 Cerrar inscripciones" : "🔓 Abrir inscripciones"}
+        </button>
+      </div>
+
       <h2 className="mt-12 font-display text-2xl font-bold text-rivals-gold">Temporada 3 — Reinicio</h2>
       <div className="mt-4 rounded-2xl border border-rose-400/30 bg-rose-500/5 p-4">
         <p className="text-sm text-slate-300">
@@ -728,20 +754,32 @@ export default function AdminPage() {
         <button
           disabled={archiving}
           onClick={async () => {
-            if (!confirm("¿Borrar TODOS los datos de la Temporada 2 y empezar la Temporada 3 en limpio?")) return;
-            if (!confirm("Última confirmación: esto no se puede deshacer. ¿Continuar?")) return;
+            if (archiveConfirm === "idle") { setArchiveConfirm("warn"); return; }
+            if (archiveConfirm === "warn") { setArchiveConfirm("final"); return; }
             setArchiving(true);
             try {
               const ok = await archiveSeason();
-              alert(ok ? "✓ Listo. Temporada 3 en limpio." : "⚠️ No se pudo borrar en la nube. Revisa el error arriba.");
+              setArchiveConfirm("idle");
+              setArchiveMsg(ok ? "✓ Listo. Temporada 3 en limpio." : "⚠️ No se pudo borrar en la nube. Revisa el error de sincronización abajo.");
             } finally {
               setArchiving(false);
             }
           }}
           className="soft-ring mt-3 rounded-full bg-rose-500/90 px-4 py-2 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-50"
         >
-          {archiving ? "Borrando…" : "🗑️ Cerrar Temporada 2 y abrir Temporada 3"}
+          {archiving
+            ? "Borrando…"
+            : archiveConfirm === "idle"
+              ? "🗑️ Cerrar Temporada 2 y abrir Temporada 3"
+              : archiveConfirm === "warn"
+                ? "⚠️ Confirmar: borrar TODOS los datos de la T2"
+                : "🚨 Última confirmación — no se puede deshacer"}
         </button>
+        {archiveMsg && (
+          <p className={`mt-3 text-sm font-bold ${archiveMsg.startsWith("✓") ? "text-emerald-300" : "text-rose-300"}`}>
+            {archiveMsg}
+          </p>
+        )}
         <button
           onClick={() => {
             const blob = new Blob([JSON.stringify({ registrations, matches, submissions }, null, 2)], { type: "application/json" });
