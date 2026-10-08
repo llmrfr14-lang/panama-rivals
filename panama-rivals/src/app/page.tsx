@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { useStore, MY_TEAM_KEY } from "@/lib/store";
 import { placementFor, type Division } from "@/lib/league";
 import type { Match, Stage } from "@/lib/types";
 import { SocialIcons } from "@/components/SocialIcons";
@@ -32,7 +32,7 @@ export default function Home() {
   const [myTeamId, setMyTeamId] = useState<string | null>(null);
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const saved = localStorage.getItem("rivals_team_id");
+    const saved = localStorage.getItem(MY_TEAM_KEY);
     setMyTeamId(saved && registrations.some((r) => r.id === saved) ? saved : null);
   }, [registrations]);
   const heroRef = useRef<HTMLElement | null>(null);

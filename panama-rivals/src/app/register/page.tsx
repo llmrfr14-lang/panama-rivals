@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { divisionForRank } from "@/lib/league";
 import { platformIcon, platformLabel } from "@/lib/platforms";
-import { useStore, type PlayerInfo } from "@/lib/store";
+import { useStore, MY_TEAM_KEY, type PlayerInfo } from "@/lib/store";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import PlatformFields from "@/components/PlatformFields";
 
@@ -27,7 +27,7 @@ const inputCls =
 
 export default function RegisterPage() {
   const { lang } = useI18n();
-  const { registerTeam, registrations, supabaseConfigured } = useStore();
+  const { registerTeam, registrations, supabaseConfigured, resetMyRegistration } = useStore();
   const [step, setStep] = useState<number>(0);
   const [form, setForm] = useState({
     team: "",
@@ -36,8 +36,22 @@ export default function RegisterPage() {
   });
   const [done, setDone] = useState(false);
   const [touched, setTouched] = useState(false);
-  const myId = typeof window !== "undefined" ? localStorage.getItem("rivals_team_id") : null;
-  const myReg = myId ? registrations.find((r) => r.id === myId) : undefined;
+  const [myTeamId, setMyTeamId] = useState<string | null>(null);
+  useEffect(() => {
+    setMyTeamId(localStorage.getItem(MY_TEAM_KEY));
+  }, []);
+  const myReg = myTeamId ? registrations.find((r) => r.id === myTeamId) : undefined;
+
+  // Overwrites the existing form (or reloads it empty) so a captain whose team
+  // was already accepted can start a fresh Season 3 registration.
+  const startFreshEntry = () => {
+    resetMyRegistration();
+    setMyTeamId(null);
+    setForm({ team: "", captain: emptyCaptain(), players: [emptyPlayer(), emptyPlayer(), emptyPlayer()] });
+    setStep(0);
+    setDone(false);
+    setTouched(false);
+  };
 
   const en = lang === "en";
   const isLast = step === STEPS.length - 1;
@@ -112,8 +126,7 @@ export default function RegisterPage() {
 
   const submit = () => {
     if (done) return;
-    const reg = registerTeam(form.team.trim(), normC(form.captain), form.players.map(normP));
-    localStorage.setItem("rivals_team_id", reg.id);
+    registerTeam(form.team.trim(), normC(form.captain), form.players.map(normP));
     setDone(true);
   };
 
@@ -486,12 +499,26 @@ export default function RegisterPage() {
       {myReg && myReg.status === "approved" && (
         <div className="mt-4 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
           <p>{en ? "Your team was accepted for Season 3." : "Tu equipo fue aceptado para la Temporada 3."}</p>
-          <Link
-            href="/bracket"
-            className="soft-ring mt-3 inline-flex items-center gap-2 rounded-full bg-rivals-gold px-4 py-1.5 text-xs font-bold text-[#0b111c] transition hover:brightness-110"
-          >
-            {en ? "See the bracket →" : "Ver el bracket →"}
-          </Link>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Link
+              href="/bracket"
+              className="soft-ring inline-flex items-center gap-2 rounded-full bg-rivals-gold px-4 py-1.5 text-xs font-bold text-[#0b111c] transition hover:brightness-110"
+            >
+              {en ? "See the bracket →" : "Ver el bracket →"}
+            </Link>
+            <button
+              type="button"
+              onClick={startFreshEntry}
+              className="soft-ring rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs font-bold text-slate-200 transition hover:bg-white/10"
+            >
+              {en ? "Register another team" : "Registrar otro equipo"}
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-emerald-200/70">
+            {en
+              ? "Registering again creates a new entry — your previous team stays until an admin removes it."
+              : "Volver a registrar crea una entrada nueva — tu equipo anterior queda hasta que la admin lo borre."}
+          </p>
         </div>
       )}
       {myReg && myReg.status === "declined" && (

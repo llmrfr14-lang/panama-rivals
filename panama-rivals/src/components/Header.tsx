@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { useStore, MY_TEAM_KEY } from "@/lib/store";
 import { useTheme } from "@/lib/theme";
 
 const links = [
@@ -112,7 +112,7 @@ export default function Header() {
   // Re-sync my-team chip whenever registrations change (remote approve/decline reflects live.);
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const myId = localStorage.getItem("rivals_team_id");
+    const myId = localStorage.getItem(MY_TEAM_KEY);
     if (!myId) { setMyReg(null); return; }
     const reg = registrations.find((r) => r.id === myId);
     setMyReg(reg ? { id: reg.id, teamName: reg.teamName, status: reg.status } : null);

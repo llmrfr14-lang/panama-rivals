@@ -49,6 +49,8 @@ type Store = {
   hydrated: boolean;
   lastSyncError: string | null;
   registerTeam: (teamName: string, captain: RivalContact, players: PlayerInfo[]) => Registration;
+  /** Clear this browser's "my team" marker so the captain can register a fresh team. */
+  resetMyRegistration: () => void;
   assignGroup: (registrationId: string, groupId: string | null) => void;
   reviewRegistration: (registrationId: string, status: RegistrationStatus) => void;
   deleteRegistration: (registrationId: string) => void;
@@ -93,7 +95,9 @@ type Persisted = {
   bracketRegen: string[];
 };
 
-/** Decode the base64url preview seed (UTF-8 safe). */
+export const MY_TEAM_KEY = "rivals_team_id";
+
+
 function decodeB64Url(s: string): string {
   const b64 = s.replace(/-/g, "+").replace(/_/g, "/");
   const bin = atob(b64 + "===".slice((b64.length + 3) % 4));
@@ -402,7 +406,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     };
     setState((s) => ({ ...s, registrations: [...s.registrations, reg] }));
     upsertReg(reg);
+    if (typeof window !== "undefined") localStorage.setItem(MY_TEAM_KEY, reg.id);
     return reg;
+  };
+
+  // Unlink the captain's own team on this device (e.g. to register a new one for
+  // the next season). Does NOT delete the registration — admin only.
+  const resetMyRegistration: Store["resetMyRegistration"] = () => {
+    if (typeof window !== "undefined") localStorage.removeItem(MY_TEAM_KEY);
   };
 
   const assignGroup: Store["assignGroup"] = (registrationId, groupId) => {
@@ -760,6 +771,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
     }
     localStorage.removeItem(LS_KEY);
+    localStorage.removeItem(MY_TEAM_KEY);
     setState({ matches: initialMatches, submissions: [], registrations: [], bracketRegen: [] });
     return true;
   };
@@ -810,6 +822,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const resetData = () => {
     localStorage.removeItem(LS_KEY);
+    localStorage.removeItem(MY_TEAM_KEY);
     setState({ matches: initialMatches, submissions: [], registrations: [], bracketRegen: [] });
   };
 
@@ -823,6 +836,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         supabaseConfigured: Boolean(sb),
         lastSyncError,
         registerTeam,
+        resetMyRegistration,
         assignGroup,
         generateSchedule,
         generateBracket,
