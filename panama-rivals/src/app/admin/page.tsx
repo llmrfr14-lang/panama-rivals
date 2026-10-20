@@ -330,7 +330,7 @@ export default function AdminPage() {
                 ➕ Abrir registro
               </Link>
               <a
-                href="https://discord.gg/panamarivals"
+                href="https://discord.gg/chnrkJpfS4"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="soft-ring rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-bold text-slate-200 transition hover:bg-white/10"
