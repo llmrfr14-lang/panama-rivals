@@ -139,7 +139,7 @@ export default function Home() {
           <Link href="/register" className="soft-ring rounded-full bg-rivals-orange px-8 py-3.5 font-bold text-white shadow-[0_8px_30px_rgba(255,122,47,0.4)] transition hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_12px_42px_rgba(255,122,47,0.5)]">
             {t("hero.cta")}
           </Link>
-          <a href="https://discord.gg/h66gaD8rA" className="soft-ring rounded-full border border-rivals-cyan/40 bg-rivals-cyan/10 px-7 py-3.5 font-bold text-rivals-cyanSoft backdrop-blur-md transition hover:bg-rivals-cyan/15 hover:text-white">
+          <a href="https://discord.gg/chnrkJpfS4" className="soft-ring rounded-full border border-rivals-cyan/40 bg-rivals-cyan/10 px-7 py-3.5 font-bold text-rivals-cyanSoft backdrop-blur-md transition hover:bg-rivals-cyan/15 hover:text-white">
             {t("hero.discord")}
           </a>
         </div>
