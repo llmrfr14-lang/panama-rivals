@@ -49,7 +49,7 @@ const dict: Record<string, Record<Lang, string>> = {
   "exp.1.title": { es: "Construye tu legado", en: "Build a Legacy" },
   "exp.1.body": { es: "Olvida los randoms. Arma tu equipo, inscríbelo por torneo, y haz tu nombre en la escena de Panamá.", en: "Forget random teammates. Build your team, register it each tournament, and make a name for yourself in Panama's scene." },
   "exp.2.title": { es: "Bajo los reflectores", en: "Step into the Spotlight" },
-  "exp.2.body": { es: "Partidos todos el mismo día, streams y clip de tus jugadas para subir tu draft stock.", en: "All matches on a single day, with streams and highlights to raise your draft stock." },
+  "exp.2.body": { es: "Partidos todos el mismo día, con streams y clips de tus jugadas para subir tu valor en el draft.", en: "All matches on a single day, with streams and highlights to raise your draft stock." },
   "exp.3.title": { es: "Operaciones profesionales", en: "Professional Operations" },
   "exp.3.body": { es: "Formato claro, reglas firmes y un staff que resuelve disputas rápido. Tu te enfocas en jugar.", en: "Clear format, firm rules, and a staff that settles disputes fast. You focus on playing." },
   "tiers.kicker": { es: "DOS DIVISIONES · UNA LIGA", en: "TWO DIVISIONS · ONE LEAGUE" },
